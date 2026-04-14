@@ -144,18 +144,27 @@ function handleGuess(letter) {
             groups[pattern].push(word);
         }
 
-        let maxCount = -1;
-        let bestPatterns = [];
-        for (const pattern in groups) {
-            if (groups[pattern].length > maxCount) {
-                maxCount = groups[pattern].length;
-                bestPatterns = [pattern];
-            } else if (groups[pattern].length === maxCount) {
-                bestPatterns.push(pattern);
+        // Probabilistic adversarial selection
+        // Alpha > 1 gives an adversarial edge without being completely deterministic.
+        // Alpha = 1 behaves exactly like regular random hangman.
+        // Very large Alpha acts like pure deterministic adversarial.
+        const alpha = 1.5;
+        const patterns = Object.keys(groups);
+        const weights = patterns.map(p => Math.pow(groups[p].length, alpha));
+        const totalWeight = weights.reduce((acc, val) => acc + val, 0);
+        
+        let r = Math.random() * totalWeight;
+        let cumulativeWeight = 0;
+        let chosenPatternStr = patterns[patterns.length - 1];
+        
+        for (let i = 0; i < patterns.length; i++) {
+            cumulativeWeight += weights[i];
+            if (r <= cumulativeWeight) {
+                chosenPatternStr = patterns[i];
+                break;
             }
         }
-
-        const chosenPatternStr = bestPatterns[Math.floor(Math.random() * bestPatterns.length)];
+        
         possibleWords = groups[chosenPatternStr];
 
         for (let i = 0; i < currentWordLength; i++) {

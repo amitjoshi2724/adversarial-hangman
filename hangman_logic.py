@@ -79,18 +79,12 @@ class HangmanGame:
                     groups[pattern_tuple] = []
                 groups[pattern_tuple].append(word)
                 
-            # Find largest groups
-            max_count = -1
-            best_patterns = []
-            for pat, words in groups.items():
-                if len(words) > max_count:
-                    max_count = len(words)
-                    best_patterns = [pat]
-                elif len(words) == max_count:
-                    best_patterns.append(pat)
-                    
-            # Uniform random tie breaking
-            chosen_pattern = random.choice(best_patterns)
+            # Probabilistic adversarial selection
+            alpha = 1.5
+            patterns = list(groups.keys())
+            weights = [len(groups[p]) ** alpha for p in patterns]
+            
+            chosen_pattern = random.choices(patterns, weights=weights, k=1)[0]
             self.possible_words = groups[chosen_pattern]
             
             for i in range(self.word_length):
