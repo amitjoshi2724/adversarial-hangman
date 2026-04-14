@@ -43,7 +43,7 @@ class HangmanGUI:
         self.root.configure(bg="#0f172a")
         
         self.game = None
-        self.is_adversarial = False
+        self.is_adversarial = True
         self.god_mode = False
         
         self.canvas = None
@@ -87,6 +87,7 @@ class HangmanGUI:
         mode_frame.pack(anchor=tk.E, pady=2)
         tk.Label(mode_frame, text="Regular", fg="#94a3b8", bg="#0f172a", font=("Outfit", 10)).pack(side=tk.LEFT, padx=5)
         self.mode_toggle = IOSToggle(mode_frame, command=self.set_adv_mode, on_color="#8b5cf6")
+        self.mode_toggle.set_state(True)
         self.mode_toggle.pack(side=tk.LEFT)
         tk.Label(mode_frame, text="Adversarial", fg="#94a3b8", bg="#0f172a", font=("Outfit", 10)).pack(side=tk.LEFT, padx=5)
         

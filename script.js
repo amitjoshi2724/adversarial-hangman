@@ -4,7 +4,7 @@ let currentWordLength = 0;
 let guessedLetters = new Set();
 let wrongGuesses = 0;
 const MAX_ERRORS = 6;
-let isAdversarial = false;
+let isAdversarial = true; // Set adversarial as default
 let godMode = false;
 let gamesWon = 0;
 let gamesPlayed = 0;
@@ -103,6 +103,7 @@ function initGame() {
     godMode = godToggle.checked;
 
     btnRestart.style.display = 'none'; // hide Next Word
+    btnRefresh.style.display = 'inline-block'; // show refresh button
 
     const randomSeedWord = dictionary[Math.floor(Math.random() * dictionary.length)];
     currentWordLength = randomSeedWord.length;
@@ -145,20 +146,24 @@ function handleGuess(letter) {
         }
 
         // Probabilistic adversarial selection
-        // Alpha > 1 gives an adversarial edge without being completely deterministic.
-        // Alpha = 1 behaves exactly like regular random hangman.
-        // Very large Alpha acts like pure deterministic adversarial.
         const alpha = 1.5;
         const patterns = Object.keys(groups);
-        const weights = patterns.map(p => Math.pow(groups[p].length, alpha));
-        const totalWeight = weights.reduce((acc, val) => acc + val, 0);
+        const rawWeights = patterns.map(p => Math.pow(groups[p].length, alpha));
+        const totalWeight = rawWeights.reduce((acc, val) => acc + val, 0);
         
+        // Debug logging
+        console.log(`--- Adversarial Selection (Alpha=${alpha}) ---`);
+        patterns.forEach((p, index) => {
+            const prob = (rawWeights[index] / totalWeight * 100).toFixed(2);
+            console.log(`Pattern: ${p} | Size: ${groups[p].length} | Prob: ${prob}%`);
+        });
+
         let r = Math.random() * totalWeight;
         let cumulativeWeight = 0;
         let chosenPatternStr = patterns[patterns.length - 1];
         
         for (let i = 0; i < patterns.length; i++) {
-            cumulativeWeight += weights[i];
+            cumulativeWeight += rawWeights[i];
             if (r <= cumulativeWeight) {
                 chosenPatternStr = patterns[i];
                 break;
@@ -206,16 +211,16 @@ function checkGameEnd() {
         gamesPlayed++;
         statusMessage.textContent = "You Win!";
         statusMessage.className = "status-message status-win";
-        document.getElementById('btnRestart').style.display = 'inline-block';
-        document.getElementById('btnRefreshBot').style.display = 'none';
+        btnRestart.style.display = 'inline-block';
+        btnRefresh.style.display = 'none';
     } else if (wrongGuesses >= MAX_ERRORS && !godMode && !gameOver) {
         gameOver = true;
         gamesPlayed++;
         let answer = isAdversarial ? possibleWords[Math.floor(Math.random() * possibleWords.length)] : regularWord;
         statusMessage.textContent = `Game Over. Word was: ${answer}`;
         statusMessage.className = "status-message status-lose";
-        document.getElementById('btnRestart').style.display = 'inline-block';
-        document.getElementById('btnRefreshBot').style.display = 'none';
+        btnRestart.style.display = 'inline-block';
+        btnRefresh.style.display = 'none';
 
         for (let i = 0; i < currentWordLength; i++) {
             if (currentPattern[i] === '_') {
