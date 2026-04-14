@@ -268,6 +268,16 @@ function updateUI() {
         }
     }
 
+    // Toggle Halo
+    const halo = document.querySelector('.part-halo');
+    if (halo) {
+        if (wrongGuesses >= 6 && godMode) {
+            halo.classList.remove('hidden');
+        } else {
+            halo.classList.add('hidden');
+        }
+    }
+
     if (gameOver) {
         document.querySelectorAll('.key').forEach(btn => {
             btn.disabled = true;
