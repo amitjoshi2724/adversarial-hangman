@@ -92,6 +92,11 @@ class HangmanGUI:
         tk.Label(mf, text="Adversarial", fg="#94a3b8", bg="#0f172a",
                  font=("Outfit", 10)).pack(side=tk.LEFT, padx=5)
 
+        # Mode description
+        desc_f = tk.Frame(right, bg="#0f172a"); desc_f.pack(anchor=tk.E, pady=(0, 5))
+        tk.Label(desc_f, text="The game decides the word as you play to keep you guessing longer",
+                 fg="#94a3b8", bg="#0f172a", font=("Outfit", 8), justify=tk.RIGHT, wraplength=180).pack(side=tk.RIGHT, padx=5)
+
         # Guesses spinbox
         guf = tk.Frame(right, bg="#0f172a"); guf.pack(anchor=tk.E, pady=2)
         self.guesses_label = tk.Label(guf, text="Guess Limit:", fg="#94a3b8", bg="#0f172a",
