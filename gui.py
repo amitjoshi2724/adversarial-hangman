@@ -1,16 +1,17 @@
+import random
 import tkinter as tk
-from tkinter import messagebox
 from hangman_logic import HangmanGame
 
-TOTAL_PARTS = 19  # parts 0-18
+TOTAL_PARTS = 26
+
 
 class IOSToggle(tk.Canvas):
     def __init__(self, parent, command=None, on_color="#8b5cf6", *args, **kwargs):
         super().__init__(parent, width=50, height=26, bg="#0f172a", highlightthickness=0, *args, **kwargs)
-        self.command = command
-        self.is_on = False
-        self.bg_off = "#334155"
-        self.bg_on = on_color
+        self.command  = command
+        self.is_on    = False
+        self.bg_off   = "#334155"
+        self.bg_on    = on_color
         self.fg_color = "#ffffff"
         self.bind("<Button-1>", self.toggle)
         self.draw()
@@ -21,12 +22,12 @@ class IOSToggle(tk.Canvas):
 
     def draw(self):
         self.delete("all")
-        bg_color = self.bg_on if self.is_on else self.bg_off
-        self.create_line(13, 13, 37, 13, width=26, capstyle="round", fill=bg_color)
-        knob_x = 37 if self.is_on else 13
-        self.create_oval(knob_x-11, 2, knob_x+11, 24, fill=self.fg_color, outline="")
+        bg = self.bg_on if self.is_on else self.bg_off
+        self.create_line(13, 13, 37, 13, width=26, capstyle="round", fill=bg)
+        kx = 37 if self.is_on else 13
+        self.create_oval(kx-11, 2, kx+11, 24, fill=self.fg_color, outline="")
 
-    def toggle(self, event=None):
+    def toggle(self, _=None):
         self.is_on = not self.is_on
         self.draw()
         if self.command:
@@ -35,118 +36,132 @@ class IOSToggle(tk.Canvas):
 
 class HangmanGUI:
     def __init__(self, root):
-        self.root = root
+        self.root          = root
         self.root.title("Hangman")
-        self.root.geometry("640x900")
+        self.root.geometry("660x960")
         self.root.configure(bg="#0f172a")
 
-        self.game = None
+        self.game          = None
         self.is_adversarial = True
-        self.god_mode = False
-        self.max_errors = 10
+        self.god_mode      = False
+        self.max_errors    = 10
 
-        self.canvas = None
-        self.word_label = None
-        self.status_label = None
-        self.record_label = None
+        self.canvas        = None
+        self.word_label    = None
+        self.status_label  = None
+        self.record_label  = None
+        self.lock_label    = None
+        self.guesses_spin  = None
         self.keyboard_frame = None
-        self.keys = {}
+        self.keys          = {}
 
         self.setup_ui()
         self.start_new_game()
 
+    # ── UI Setup ──────────────────────────────────────────────────────────────
     def setup_ui(self):
-        # Header frame
-        header_frame = tk.Frame(self.root, bg="#0f172a")
-        header_frame.pack(pady=10, fill=tk.X, padx=20)
+        hdr = tk.Frame(self.root, bg="#0f172a")
+        hdr.pack(pady=10, fill=tk.X, padx=20)
 
-        title_frame = tk.Frame(header_frame, bg="#0f172a")
-        title_frame.pack(side=tk.LEFT)
-
-        title = tk.Label(title_frame, text="HANGMAN", font=("Outfit", 28, "bold"), fg="#60a5fa", bg="#0f172a")
-        title.pack(side=tk.LEFT)
-
-        self.record_label = tk.Label(title_frame, text="Record: 0/0", font=("Outfit", 12, "bold"), fg="#f8fafc", bg="#0f172a")
+        left = tk.Frame(hdr, bg="#0f172a")
+        left.pack(side=tk.LEFT)
+        tk.Label(left, text="HANGMAN", font=("Outfit", 28, "bold"),
+                 fg="#60a5fa", bg="#0f172a").pack(side=tk.LEFT)
+        self.record_label = tk.Label(left, text="Record: 0/0",
+                                     font=("Outfit", 12, "bold"),
+                                     fg="#f8fafc", bg="#0f172a")
         self.record_label.pack(side=tk.LEFT, padx=15)
 
-        # Toggles Frame (right side)
-        toggles_frame = tk.Frame(header_frame, bg="#0f172a")
-        toggles_frame.pack(side=tk.RIGHT)
+        right = tk.Frame(hdr, bg="#0f172a")
+        right.pack(side=tk.RIGHT)
 
-        # Always Win Toggle
-        god_frame = tk.Frame(toggles_frame, bg="#0f172a")
-        god_frame.pack(anchor=tk.E, pady=2)
-        tk.Label(god_frame, text="Always Win", fg="#94a3b8", bg="#0f172a", font=("Outfit", 10)).pack(side=tk.LEFT, padx=5)
-        self.god_toggle = IOSToggle(god_frame, command=self.set_god_mode, on_color="#f59e0b")
+        # Always-Win toggle
+        gf = tk.Frame(right, bg="#0f172a"); gf.pack(anchor=tk.E, pady=2)
+        tk.Label(gf, text="Always Win", fg="#94a3b8", bg="#0f172a",
+                 font=("Outfit", 10)).pack(side=tk.LEFT, padx=5)
+        self.god_toggle = IOSToggle(gf, command=self.set_god_mode, on_color="#f59e0b")
         self.god_toggle.pack(side=tk.LEFT)
 
-        # Mode Toggle
-        mode_frame = tk.Frame(toggles_frame, bg="#0f172a")
-        mode_frame.pack(anchor=tk.E, pady=2)
-        tk.Label(mode_frame, text="Regular", fg="#94a3b8", bg="#0f172a", font=("Outfit", 10)).pack(side=tk.LEFT, padx=5)
-        self.mode_toggle = IOSToggle(mode_frame, command=self.set_adv_mode, on_color="#8b5cf6")
+        # Mode toggle
+        mf = tk.Frame(right, bg="#0f172a"); mf.pack(anchor=tk.E, pady=2)
+        tk.Label(mf, text="Regular",     fg="#94a3b8", bg="#0f172a",
+                 font=("Outfit", 10)).pack(side=tk.LEFT, padx=5)
+        self.mode_toggle = IOSToggle(mf, command=self.set_adv_mode, on_color="#8b5cf6")
         self.mode_toggle.set_state(True)
         self.mode_toggle.pack(side=tk.LEFT)
-        tk.Label(mode_frame, text="Adversarial", fg="#94a3b8", bg="#0f172a", font=("Outfit", 10)).pack(side=tk.LEFT, padx=5)
+        tk.Label(mf, text="Adversarial", fg="#94a3b8", bg="#0f172a",
+                 font=("Outfit", 10)).pack(side=tk.LEFT, padx=5)
 
-        # Guesses Spinbox
-        guesses_frame = tk.Frame(toggles_frame, bg="#0f172a")
-        guesses_frame.pack(anchor=tk.E, pady=2)
-        tk.Label(guesses_frame, text="Guesses:", fg="#94a3b8", bg="#0f172a", font=("Outfit", 10)).pack(side=tk.LEFT, padx=5)
-        self.guesses_var = tk.IntVar(value=10)
-        guesses_spin = tk.Spinbox(
-            guesses_frame, from_=6, to=TOTAL_PARTS, textvariable=self.guesses_var,
-            width=4, font=("Outfit", 11, "bold"), bg="#1e293b", fg="white",
-            buttonbackground="#334155", relief=tk.FLAT, command=self.on_guesses_change
+        # Guesses spinbox
+        guf = tk.Frame(right, bg="#0f172a"); guf.pack(anchor=tk.E, pady=2)
+        tk.Label(guf, text="Guesses:", fg="#94a3b8", bg="#0f172a",
+                 font=("Outfit", 10)).pack(side=tk.LEFT, padx=5)
+        self.guesses_var  = tk.IntVar(value=10)
+        self.guesses_spin = tk.Spinbox(
+            guf, from_=6, to=TOTAL_PARTS, textvariable=self.guesses_var,
+            width=4, font=("Outfit", 11, "bold"),
+            bg="#1e293b", fg="white", buttonbackground="#334155",
+            relief=tk.FLAT, command=self.on_guesses_change
         )
-        guesses_spin.pack(side=tk.LEFT)
+        self.guesses_spin.pack(side=tk.LEFT)
 
-        # Canvas for Hangman (taller to fit all parts)
-        self.canvas = tk.Canvas(self.root, width=220, height=270, bg="#0f172a", highlightthickness=0)
+        # Lock message (amber bar)
+        self.lock_label = tk.Label(
+            self.root,
+            text="⚠ Guess limit locked mid-game. Enable 'Always Win' if you need more room.",
+            font=("Outfit", 9), fg="#f59e0b",
+            bg="#1e1a00", pady=4
+        )
+        # packed/unpacked dynamically
+
+        # Hangman canvas
+        self.canvas = tk.Canvas(self.root, width=230, height=280,
+                                bg="#0f172a", highlightthickness=0)
         self.canvas.pack(pady=5)
         self.draw_scaffold()
 
-        # Word Display
-        self.word_label = tk.Label(self.root, text="", font=("Courier", 24, "bold"), fg="#f8fafc", bg="#0f172a")
+        self.word_label = tk.Label(self.root, text="",
+                                   font=("Courier", 24, "bold"),
+                                   fg="#f8fafc", bg="#0f172a")
         self.word_label.pack(pady=10)
 
-        # Status Label
-        self.status_label = tk.Label(self.root, text="Ready to play?", font=("Outfit", 16), fg="#f8fafc", bg="#0f172a")
+        self.status_label = tk.Label(self.root, text="Ready to play?",
+                                     font=("Outfit", 16), fg="#f8fafc", bg="#0f172a")
         self.status_label.pack(pady=5)
 
-        # Keyboard Frame
         self.keyboard_frame = tk.Frame(self.root, bg="#0f172a")
         self.keyboard_frame.pack(pady=8)
         self.build_keyboard()
 
-        # Bottom Controls
         self.bottom_frame = tk.Frame(self.root, bg="#0f172a")
         self.bottom_frame.pack(pady=10)
 
         self.next_btn = tk.Button(
-            self.bottom_frame, text="Next Word", font=("Outfit", 13, "bold"),
-            bg="#10b981", fg="black", relief=tk.FLAT, padx=12, pady=6,
-            command=self.start_new_game
-        )
-        # next_btn initially hidden
+            self.bottom_frame, text="Next Word",
+            font=("Outfit", 13, "bold"), bg="#10b981", fg="black",
+            relief=tk.FLAT, padx=12, pady=6, command=self.start_new_game)
 
         self.refresh_btn = tk.Button(
-            self.bottom_frame, text="🔄 Refresh", font=("Outfit", 13, "bold"),
-            bg="#334155", fg="white", relief=tk.FLAT, padx=12, pady=6,
-            command=self.refresh_action
-        )
+            self.bottom_frame, text="🔄 Refresh",
+            font=("Outfit", 13, "bold"), bg="#334155", fg="white",
+            relief=tk.FLAT, padx=12, pady=6, command=self.refresh_action)
         self.refresh_btn.pack(side=tk.LEFT, padx=10)
 
-        # Key bindings
         self.root.bind('<Key>', self.handle_keypress)
 
+    # ── Guesses spinbox ───────────────────────────────────────────────────────
     def on_guesses_change(self):
-        val = self.guesses_var.get()
-        val = max(6, min(TOTAL_PARTS, val))
+        if self.game and self.game.guessed_letters:
+            # revert
+            self.guesses_var.set(self.max_errors)
+            return
+        val = max(6, min(TOTAL_PARTS, self.guesses_var.get()))
         self.guesses_var.set(val)
         self.max_errors = val
-        self.refresh_action()
+        if self.game:
+            self.game.max_errors = val
 
+    # ── Toggle callbacks ──────────────────────────────────────────────────────
     def set_god_mode(self, is_on):
         self.god_mode = is_on
         if self.game:
@@ -155,14 +170,46 @@ class HangmanGUI:
             self.update_ui()
 
     def set_adv_mode(self, is_adv):
-        self.is_adversarial = is_adv
-        self.refresh_action()
+        if not self.game:
+            self.is_adversarial = is_adv
+            return
 
+        was_adv = self.is_adversarial
+        self.is_adversarial = is_adv
+
+        if not self.game.guessed_letters:
+            # No guesses yet – just flip mode, no reset
+            self.game.is_adversarial = is_adv
+            if not is_adv:
+                self.game.regular_word = random.choice(self.game.possible_words)
+            return
+
+        # Mid-game switch
+        if not was_adv and is_adv:
+            # Regular → Adversarial: recompute possible_words
+            revealed      = set(l for l in self.game.current_pattern if l != '_')
+            wrong_letters = self.game.guessed_letters - revealed
+            self.game.possible_words = [
+                w for w in self.game.dictionary
+                if len(w) == self.game.word_length
+                and all(w[i] == self.game.current_pattern[i]
+                        for i in range(self.game.word_length)
+                        if self.game.current_pattern[i] != '_')
+                and not any(l in w for l in wrong_letters)
+            ]
+            self.game.is_adversarial = True
+        elif was_adv and not is_adv:
+            # Adversarial → Regular: commit a word from current possible set
+            self.game.regular_word   = random.choice(self.game.possible_words)
+            self.game.is_adversarial = False
+        # No reset
+
+    # ── Actions ───────────────────────────────────────────────────────────────
     def refresh_action(self):
         if self.game:
             self.game.is_adversarial = self.is_adversarial
-            self.game.god_mode = self.god_mode
-            self.game.max_errors = self.max_errors
+            self.game.god_mode       = self.god_mode
+            self.game.max_errors     = self.max_errors
             self.game.refresh()
             self.reset_ui_for_new_game()
 
@@ -171,12 +218,11 @@ class HangmanGUI:
             self.game = HangmanGame(
                 is_adversarial=self.is_adversarial,
                 god_mode=self.god_mode,
-                max_errors=self.max_errors
-            )
+                max_errors=self.max_errors)
         else:
             self.game.is_adversarial = self.is_adversarial
-            self.game.god_mode = self.god_mode
-            self.game.max_errors = self.max_errors
+            self.game.god_mode       = self.god_mode
+            self.game.max_errors     = self.max_errors
             self.game.start_game()
         self.reset_ui_for_new_game()
 
@@ -189,128 +235,117 @@ class HangmanGUI:
         self.next_btn.pack_forget()
         if not self.refresh_btn.winfo_ismapped():
             self.refresh_btn.pack(side=tk.LEFT, padx=10)
+        # Unlock spinbox
+        self.guesses_spin.config(state='normal')
+        self.lock_label.pack_forget()
 
+    # ── Drawing ───────────────────────────────────────────────────────────────
     def draw_scaffold(self):
-        c = self.canvas
-        c.delete("all")
-        # Base
-        c.create_line(20, 245, 105, 245, width=4, fill="#94a3b8", capstyle=tk.ROUND)
-        # Vertical post
-        c.create_line(62, 245, 62, 20, width=4, fill="#94a3b8", capstyle=tk.ROUND)
-        # Horizontal beam
-        c.create_line(62, 20, 145, 20, width=4, fill="#94a3b8", capstyle=tk.ROUND)
-        # Rope drop
-        c.create_line(145, 20, 145, 52, width=4, fill="#94a3b8", capstyle=tk.ROUND)
+        c = self.canvas; c.delete("all")
+        c.create_line(20,  260, 110, 260, width=4, fill="#94a3b8", capstyle=tk.ROUND)
+        c.create_line(65,  260, 65,  20,  width=4, fill="#94a3b8", capstyle=tk.ROUND)
+        c.create_line(65,  20,  150, 20,  width=4, fill="#94a3b8", capstyle=tk.ROUND)
+        c.create_line(150, 20,  150, 52,  width=4, fill="#94a3b8", capstyle=tk.ROUND)
 
     def draw_hangman(self, errors):
-        c = self.canvas
-        col = "#ef4444"
+        c  = self.canvas
+        cl = "#ef4444"
+        hx, hy, hr = 150, 72, 20
 
-        # Center of head
-        hx, hy, hr = 145, 72, 20
+        parts = [
+            lambda: c.create_oval(hx-hr, hy-hr, hx+hr, hy+hr, width=4, outline=cl),        # 0 head
+            lambda: c.create_line(hx, hy+hr, hx, 170, width=4, fill=cl, capstyle=tk.ROUND), # 1 body
+            lambda: c.create_oval(hx-hr-9,hy-7,hx-hr,hy+7, width=3, outline=cl),            # 2 L ear
+            lambda: c.create_oval(hx+hr,hy-7,hx+hr+9,hy+7, width=3, outline=cl),            # 3 R ear
+            lambda: c.create_oval(hx-11,hy-10,hx-4,hy-3, width=3, outline=cl),              # 4 L eye
+            lambda: c.create_oval(hx+4, hy-10,hx+11,hy-3, width=3, outline=cl),             # 5 R eye
+            lambda: c.create_line(hx,hy-2,hx,hy+6, width=3, fill=cl, capstyle=tk.ROUND),    # 6 nose
+            lambda: c.create_arc(hx-10,hy+3,hx+10,hy+18,start=200,extent=140,
+                                 style=tk.ARC, width=3, outline=cl),                          # 7 mouth
+            # 8 hair
+            lambda: [c.create_line(hx-12,hy-hr+2,hx-15,hy-hr-9,width=3,fill=cl,capstyle=tk.ROUND),
+                     c.create_line(hx,   hy-hr,   hx,   hy-hr-9,width=3,fill=cl,capstyle=tk.ROUND),
+                     c.create_line(hx+12,hy-hr+2,hx+15,hy-hr-9,width=3,fill=cl,capstyle=tk.ROUND)],
+            lambda: c.create_line(hx,115,hx-38,142, width=4, fill=cl, capstyle=tk.ROUND),   # 9  L arm
+            lambda: c.create_line(hx,115,hx+38,142, width=4, fill=cl, capstyle=tk.ROUND),   # 10 R arm
+            lambda: c.create_oval(hx-46,138,hx-36,148, width=3, outline=cl),                 # 11 L hand
+            lambda: c.create_oval(hx+36,138,hx+46,148, width=3, outline=cl),                 # 12 R hand
+            lambda: c.create_line(hx,170,hx-30,215, width=4, fill=cl, capstyle=tk.ROUND),   # 13 L leg
+            lambda: c.create_line(hx,170,hx+30,215, width=4, fill=cl, capstyle=tk.ROUND),   # 14 R leg
+            lambda: c.create_line(hx-30,215,hx-47,222, width=4,fill=cl,capstyle=tk.ROUND),  # 15 L foot
+            lambda: c.create_line(hx+30,215,hx+47,222, width=4,fill=cl,capstyle=tk.ROUND),  # 16 R foot
+            # 17 L toes
+            lambda: [c.create_line(hx-41,222,hx-41,231,width=3,fill=cl,capstyle=tk.ROUND),
+                     c.create_line(hx-45,222,hx-45,231,width=3,fill=cl,capstyle=tk.ROUND),
+                     c.create_line(hx-49,222,hx-49,231,width=3,fill=cl,capstyle=tk.ROUND)],
+            # 18 R toes
+            lambda: [c.create_line(hx+41,222,hx+41,231,width=3,fill=cl,capstyle=tk.ROUND),
+                     c.create_line(hx+45,222,hx+45,231,width=3,fill=cl,capstyle=tk.ROUND),
+                     c.create_line(hx+49,222,hx+49,231,width=3,fill=cl,capstyle=tk.ROUND)],
+            lambda: c.create_line(hx-12,hy-hr+10,hx-1,hy-hr+8,width=3,fill=cl,capstyle=tk.ROUND),# 19 L brow
+            lambda: c.create_line(hx+1, hy-hr+8,hx+12,hy-hr+10,width=3,fill=cl,capstyle=tk.ROUND),#20 R brow
+            # 21 L fingers
+            lambda: [c.create_line(hx-43,148,hx-47,156,width=3,fill=cl,capstyle=tk.ROUND),
+                     c.create_line(hx-40,149,hx-42,157,width=3,fill=cl,capstyle=tk.ROUND),
+                     c.create_line(hx-37,148,hx-38,156,width=3,fill=cl,capstyle=tk.ROUND)],
+            # 22 R fingers
+            lambda: [c.create_line(hx+37,148,hx+38,156,width=3,fill=cl,capstyle=tk.ROUND),
+                     c.create_line(hx+40,149,hx+42,157,width=3,fill=cl,capstyle=tk.ROUND),
+                     c.create_line(hx+43,148,hx+47,156,width=3,fill=cl,capstyle=tk.ROUND)],
+            lambda: c.create_oval(hx-4,128,hx+4,136, width=3, outline=cl),                   # 23 belly button
+            lambda: c.create_oval(hx-38,188,hx-30,200, width=3, outline=cl),                  # 24 L knee
+            lambda: c.create_oval(hx+30,188,hx+38,200, width=3, outline=cl),                  # 25 R knee
+        ]
 
-        # 0: Head (full circle)
-        if errors >= 1:
-            c.create_oval(hx-hr, hy-hr, hx+hr, hy+hr, width=4, outline=col)
-        # 1: Body
-        if errors >= 2:
-            c.create_line(hx, hy+hr, hx, 165, width=4, fill=col, capstyle=tk.ROUND)
-        # 2: Left Ear
-        if errors >= 3:
-            c.create_oval(hx-hr-8, hy-7, hx-hr, hy+7, width=3, outline=col)
-        # 3: Right Ear
-        if errors >= 4:
-            c.create_oval(hx+hr, hy-7, hx+hr+8, hy+7, width=3, outline=col)
-        # 4: Left Eye
-        if errors >= 5:
-            c.create_oval(hx-10, hy-10, hx-4, hy-4, width=3, outline=col)
-        # 5: Right Eye
-        if errors >= 6:
-            c.create_oval(hx+4, hy-10, hx+10, hy-4, width=3, outline=col)
-        # 6: Nose
-        if errors >= 7:
-            c.create_line(hx, hy-2, hx, hy+6, width=3, fill=col, capstyle=tk.ROUND)
-        # 7: Mouth (arc approximated with a curve)
-        if errors >= 8:
-            c.create_arc(hx-10, hy+2, hx+10, hy+18, start=200, extent=140, style=tk.ARC, width=3, outline=col)
-        # 8: Hair (3 strands)
-        if errors >= 9:
-            c.create_line(hx-12, hy-hr+2, hx-15, hy-hr-8, width=3, fill=col, capstyle=tk.ROUND)
-            c.create_line(hx,    hy-hr,   hx,    hy-hr-9, width=3, fill=col, capstyle=tk.ROUND)
-            c.create_line(hx+12, hy-hr+2, hx+15, hy-hr-8, width=3, fill=col, capstyle=tk.ROUND)
-        # 9: Left Arm
-        if errors >= 10:
-            c.create_line(hx, 110, hx-35, 135, width=4, fill=col, capstyle=tk.ROUND)
-        # 10: Right Arm
-        if errors >= 11:
-            c.create_line(hx, 110, hx+35, 135, width=4, fill=col, capstyle=tk.ROUND)
-        # 11: Left Hand
-        if errors >= 12:
-            c.create_oval(hx-43, 130, hx-33, 140, width=3, outline=col)
-        # 12: Right Hand
-        if errors >= 13:
-            c.create_oval(hx+33, 130, hx+43, 140, width=3, outline=col)
-        # 13: Left Leg
-        if errors >= 14:
-            c.create_line(hx, 165, hx-28, 208, width=4, fill=col, capstyle=tk.ROUND)
-        # 14: Right Leg
-        if errors >= 15:
-            c.create_line(hx, 165, hx+28, 208, width=4, fill=col, capstyle=tk.ROUND)
-        # 15: Left Foot
-        if errors >= 16:
-            c.create_line(hx-28, 208, hx-44, 214, width=4, fill=col, capstyle=tk.ROUND)
-        # 16: Right Foot
-        if errors >= 17:
-            c.create_line(hx+28, 208, hx+44, 214, width=4, fill=col, capstyle=tk.ROUND)
-        # 17: Left Toes
-        if errors >= 18:
-            for dx in [-38, -43, -48]:
-                c.create_line(hx+dx, 214, hx+dx, 222, width=3, fill=col, capstyle=tk.ROUND)
-        # 18: Right Toes
-        if errors >= 19:
-            for dx in [38, 43, 48]:
-                c.create_line(hx+dx, 214, hx+dx, 222, width=3, fill=col, capstyle=tk.ROUND)
+        for i, draw_fn in enumerate(parts):
+            if errors >= i + 1:
+                draw_fn()
 
-        # Always-Win halo (dashed golden ring around head)
+        # Always-Win halo
         if errors >= self.max_errors and self.god_mode:
-            c.create_oval(hx-hr-12, hy-hr-12, hx+hr+12, hy+hr+12,
+            c.create_oval(hx-hr-13, hy-hr-13, hx+hr+13, hy+hr+13,
                           width=2, outline="#f59e0b", dash=(5, 4))
 
+    # ── Keyboard ──────────────────────────────────────────────────────────────
     def build_keyboard(self):
-        for widget in self.keyboard_frame.winfo_children():
-            widget.destroy()
-        letters = 'abcdefghijklmnopqrstuvwxyz'
+        for w in self.keyboard_frame.winfo_children():
+            w.destroy()
         self.keys = {}
-        for i, char in enumerate(letters):
-            row = i // 7
-            col = i % 7
+        for i, ch in enumerate('abcdefghijklmnopqrstuvwxyz'):
             btn = tk.Button(
-                self.keyboard_frame, text=char.upper(), width=4, height=2,
+                self.keyboard_frame, text=ch.upper(), width=4, height=2,
                 font=("Outfit", 11, "bold"), bg="#1e293b", fg="white",
                 relief=tk.FLAT,
-                command=lambda c=char: self.handle_guess(c)
-            )
-            btn.grid(row=row, column=col, padx=2, pady=2)
-            self.keys[char] = btn
+                command=lambda c=ch: self.handle_guess(c))
+            btn.grid(row=i//7, column=i%7, padx=2, pady=2)
+            self.keys[ch] = btn
 
     def handle_keypress(self, event):
-        char = event.char.lower()
-        if char.isalpha() and len(char) == 1:
-            self.handle_guess(char)
+        ch = event.char.lower()
+        if ch.isalpha() and len(ch) == 1:
+            self.handle_guess(ch)
 
-    def handle_guess(self, char):
+    def handle_guess(self, ch):
         if not self.game or self.game.game_over:
             return
-        success, msg = self.game.guess(char)
+        success, _ = self.game.guess(ch)
         if success:
-            btn = self.keys.get(char)
+            btn = self.keys.get(ch)
             if btn:
                 btn.config(state=tk.DISABLED)
-                btn.config(bg="#10b981" if char in self.game.current_pattern else "#ef4444")
+                btn.config(bg="#10b981" if ch in self.game.current_pattern else "#ef4444")
+
+            # Lock spinbox after first guess
+            if len(self.game.guessed_letters) == 1:
+                self.guesses_spin.config(state='disabled')
+                if not self.lock_label.winfo_ismapped():
+                    self.lock_label.pack(fill=tk.X, padx=20, pady=(0, 4))
+
             self.update_ui()
             if self.game.game_over:
                 self.end_game()
 
+    # ── State updates ─────────────────────────────────────────────────────────
     def update_ui(self):
         self.word_label.config(text=self.game.get_display_pattern())
         self.draw_scaffold()
@@ -326,11 +361,11 @@ class HangmanGUI:
         else:
             answer = self.game.get_answer()
             self.status_label.config(text=f"Game Over. Word was: {answer}", fg="#ef4444")
-
         self.next_btn.pack(side=tk.LEFT, padx=10)
         self.refresh_btn.pack_forget()
 
+
 if __name__ == "__main__":
     root = tk.Tk()
-    app = HangmanGUI(root)
+    app  = HangmanGUI(root)
     root.mainloop()

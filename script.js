@@ -3,8 +3,8 @@ let possibleWords = [];
 let currentWordLength = 0;
 let guessedLetters = new Set();
 let wrongGuesses = 0;
-const TOTAL_PARTS = 19; // Total body parts available (0-18)
-let maxErrors = 10;     // Configurable by user, min 6
+const TOTAL_PARTS = 26;
+let maxErrors = 10;
 let isAdversarial = true;
 let godMode = false;
 let gamesWon = 0;
@@ -13,42 +13,72 @@ let regularWord = "";
 let currentPattern = [];
 let gameOver = false;
 
-const modeToggle = document.getElementById('modeToggle');
-const godToggle = document.getElementById('godToggle');
+const modeToggle   = document.getElementById('modeToggle');
+const godToggle    = document.getElementById('godToggle');
 const guessesInput = document.getElementById('guessesInput');
-const recordLabel = document.getElementById('recordLabel');
-const btnRefresh = document.getElementById('btnRefreshBot');
-const btnRestart = document.getElementById('btnRestart');
-const keyboardContainer = document.getElementById('keyboard');
-const wordDisplay = document.getElementById('wordDisplay');
-const statusMessage = document.getElementById('statusMessage');
+const guessLockMsg = document.getElementById('guessLockMsg');
+const recordLabel  = document.getElementById('recordLabel');
+const btnRefresh   = document.getElementById('btnRefreshBot');
+const btnRestart   = document.getElementById('btnRestart');
+const keyboardEl   = document.getElementById('keyboard');
+const wordDisplay  = document.getElementById('wordDisplay');
+const statusMsg    = document.getElementById('statusMessage');
 const toggleLabels = document.querySelectorAll('.toggle-label');
 
-// Initialize Keyboard
+// ── Keyboard ──────────────────────────────────────────────────────────────────
 function buildKeyboard() {
-    keyboardContainer.innerHTML = '';
-    'abcdefghijklmnopqrstuvwxyz'.split('').forEach(letter => {
+    keyboardEl.innerHTML = '';
+    for (const letter of 'abcdefghijklmnopqrstuvwxyz') {
         const btn = document.createElement('button');
         btn.classList.add('key');
         btn.textContent = letter;
         btn.id = `key-${letter}`;
         btn.addEventListener('click', () => handleGuess(letter));
-        keyboardContainer.appendChild(btn);
-    });
+        keyboardEl.appendChild(btn);
+    }
 }
 
-// Physical keyboard listener
-document.addEventListener('keydown', (e) => {
+document.addEventListener('keydown', e => {
     if (gameOver) return;
-    const key = e.key.toLowerCase();
-    if (/^[a-z]$/.test(key)) handleGuess(key);
+    const k = e.key.toLowerCase();
+    if (/^[a-z]$/.test(k)) handleGuess(k);
 });
 
+// ── Mode toggle (no full reset – mid-game switch is handled smartly) ──────────
 modeToggle.addEventListener('change', () => {
+    const wasAdversarial = isAdversarial;
+    isAdversarial = modeToggle.checked;
     updateToggleLabels();
-    refreshGame();
+
+    if (guessedLetters.size === 0) {
+        // No guesses yet – just flip mode; if switching to regular, commit a word now
+        if (!isAdversarial) {
+            regularWord = possibleWords[Math.floor(Math.random() * possibleWords.length)];
+        }
+        return; // No reset
+    }
+
+    // Mid-game switch
+    if (!wasAdversarial && isAdversarial) {
+        // Regular → Adversarial: recompute possibleWords from dictionary
+        const revealed   = new Set(currentPattern.filter(c => c !== '_'));
+        const wrongLetters = new Set([...guessedLetters].filter(l => !revealed.has(l)));
+        possibleWords = dictionary.filter(w => {
+            if (w.length !== currentWordLength) return false;
+            for (let i = 0; i < currentWordLength; i++) {
+                if (currentPattern[i] !== '_' && w[i] !== currentPattern[i]) return false;
+            }
+            for (const l of wrongLetters) { if (w.includes(l)) return false; }
+            return true;
+        });
+    } else if (wasAdversarial && !isAdversarial) {
+        // Adversarial → Regular: commit one word from the current possible set
+        regularWord = possibleWords[Math.floor(Math.random() * possibleWords.length)];
+    }
+    // No game reset
 });
 
+// ── God toggle ────────────────────────────────────────────────────────────────
 godToggle.addEventListener('change', () => {
     godMode = godToggle.checked;
     toggleLabels[0].classList.toggle('active', godMode);
@@ -56,57 +86,63 @@ godToggle.addEventListener('change', () => {
     updateUI();
 });
 
+// ── Guesses input – lock after first guess ────────────────────────────────────
 guessesInput.addEventListener('change', () => {
-    let val = parseInt(guessesInput.value);
-    if (isNaN(val) || val < 6) val = 6;
-    if (val > TOTAL_PARTS) val = TOTAL_PARTS;
+    if (guessedLetters.size > 0) {
+        guessesInput.value = maxErrors; // revert
+        return;
+    }
+    let val = Math.max(6, Math.min(TOTAL_PARTS, parseInt(guessesInput.value) || 10));
     guessesInput.value = val;
     maxErrors = val;
-    refreshGame();
 });
 
 btnRefresh.addEventListener('click', refreshGame);
 btnRestart.addEventListener('click', initGame);
 
-function refreshGame() {
-    initGame();
-}
+function refreshGame() { initGame(); }
 
 function updateToggleLabels() {
     isAdversarial = modeToggle.checked;
-    toggleLabels[1].classList.toggle('active', !isAdversarial);
-    toggleLabels[2].classList.toggle('active', isAdversarial);
+    toggleLabels[1].classList.toggle('active', !isAdversarial); // Regular
+    toggleLabels[2].classList.toggle('active',  isAdversarial); // Adversarial
 }
 
+// ── Dictionary ────────────────────────────────────────────────────────────────
 async function loadDictionary() {
     try {
-        const response = await fetch('dict.txt');
-        if (!response.ok) throw new Error("Could not load dict.txt");
-        const text = await response.text();
+        const r = await fetch('dict.txt');
+        if (!r.ok) throw new Error();
+        const text = await r.text();
         dictionary = text.split(/\r?\n/).map(w => w.trim().toLowerCase()).filter(w => /^[a-z]+$/.test(w));
-    } catch (e) {
-        console.warn("Using fallback dictionary:", e);
-        dictionary = ['apple', 'banana', 'orange', 'grape', 'peach', 'lemon', 'melon',
-                      'strawberry', 'blueberry', 'blackberry', 'kiwi', 'pineapple', 'watermelon'];
+    } catch {
+        dictionary = ['apple','banana','orange','grape','peach','lemon','melon',
+                      'strawberry','blueberry','blackberry','kiwi','pineapple','watermelon'];
     }
     initGame();
 }
 
+// ── Init / Reset ──────────────────────────────────────────────────────────────
 function initGame() {
-    if (dictionary.length === 0) return;
+    if (!dictionary.length) return;
 
     guessedLetters.clear();
-    wrongGuesses = 0;
-    gameOver = false;
+    wrongGuesses  = 0;
+    gameOver      = false;
     isAdversarial = modeToggle.checked;
-    godMode = godToggle.checked;
-    maxErrors = Math.max(6, Math.min(TOTAL_PARTS, parseInt(guessesInput.value) || 10));
+    godMode       = godToggle.checked;
+    maxErrors     = Math.max(6, Math.min(TOTAL_PARTS, parseInt(guessesInput.value) || 10));
+
+    // Unlock guess input
+    guessesInput.disabled    = false;
+    guessesInput.style.opacity = '1';
+    if (guessLockMsg) guessLockMsg.style.display = 'none';
 
     btnRestart.style.display = 'none';
     btnRefresh.style.display = 'inline-block';
 
-    const randomSeedWord = dictionary[Math.floor(Math.random() * dictionary.length)];
-    currentWordLength = randomSeedWord.length;
+    const seed = dictionary[Math.floor(Math.random() * dictionary.length)];
+    currentWordLength = seed.length;
     possibleWords = dictionary.filter(w => w.length === currentWordLength);
 
     if (!isAdversarial) {
@@ -114,47 +150,51 @@ function initGame() {
     }
 
     currentPattern = Array(currentWordLength).fill('_');
-    statusMessage.textContent = "Ready to play?";
-    statusMessage.className = "status-message";
+    statusMsg.textContent = 'Ready to play?';
+    statusMsg.className   = 'status-message';
 
     buildKeyboard();
     updateUI();
 }
 
+// ── Guess logic ───────────────────────────────────────────────────────────────
 function handleGuess(letter) {
     if (gameOver || guessedLetters.has(letter)) return;
-
     guessedLetters.add(letter);
+
+    // Lock guess input after first letter
+    if (guessedLetters.size === 1) {
+        guessesInput.disabled    = true;
+        guessesInput.style.opacity = '0.5';
+        if (guessLockMsg) guessLockMsg.style.display = 'block';
+    }
+
     let hit = false;
 
     if (isAdversarial) {
         const groups = {};
         for (const word of possibleWords) {
-            let pattern = '';
+            let pat = '';
             for (let i = 0; i < currentWordLength; i++) {
-                pattern += currentPattern[i] !== '_' ? currentPattern[i]
-                         : word[i] === letter       ? letter
-                         : '_';
+                pat += currentPattern[i] !== '_' ? currentPattern[i]
+                     : word[i] === letter        ? letter
+                     : '_';
             }
-            if (!groups[pattern]) groups[pattern] = [];
-            groups[pattern].push(word);
+            (groups[pat] ??= []).push(word);
         }
 
-        const alpha = 1.5;
-        const patterns = Object.keys(groups);
-        const rawWeights = patterns.map(p => Math.pow(groups[p].length, alpha));
-        const totalWeight = rawWeights.reduce((a, v) => a + v, 0);
+        const alpha   = 1.5;
+        const pats    = Object.keys(groups);
+        const weights = pats.map(p => groups[p].length ** alpha);
+        const total   = weights.reduce((a, v) => a + v, 0);
 
-        // Debug logging
-        console.log(`--- Adversarial Selection (Alpha=${alpha}) ---`);
-        patterns.forEach((p, i) => console.log(`Pattern: ${p} | Size: ${groups[p].length} | Prob: ${(rawWeights[i]/totalWeight*100).toFixed(2)}%`));
+        console.log(`--- Adversarial (α=${alpha}) ---`);
+        pats.forEach((p, i) => console.log(`${p} | n=${groups[p].length} | p=${(weights[i]/total*100).toFixed(1)}%`));
 
-        let r = Math.random() * totalWeight;
-        let cum = 0;
-        let chosen = patterns[patterns.length - 1];
-        for (let i = 0; i < patterns.length; i++) {
-            cum += rawWeights[i];
-            if (r <= cum) { chosen = patterns[i]; break; }
+        let r = Math.random() * total, cum = 0, chosen = pats.at(-1);
+        for (let i = 0; i < pats.length; i++) {
+            cum += weights[i];
+            if (r <= cum) { chosen = pats[i]; break; }
         }
 
         possibleWords = groups[chosen];
@@ -167,53 +207,45 @@ function handleGuess(letter) {
         }
     }
 
-    const keyBtn = document.getElementById(`key-${letter}`);
-    if (keyBtn) {
-        keyBtn.disabled = true;
-        keyBtn.classList.add(hit ? 'correct' : 'incorrect');
-    }
+    const btn = document.getElementById(`key-${letter}`);
+    if (btn) { btn.disabled = true; btn.classList.add(hit ? 'correct' : 'incorrect'); }
     if (!hit) wrongGuesses++;
 
     checkGameEnd();
     updateUI();
 }
 
+// ── End check ─────────────────────────────────────────────────────────────────
 function checkGameEnd() {
     if (!currentPattern.includes('_') && !gameOver) {
-        gameOver = true;
-        gamesWon++;
-        gamesPlayed++;
-        statusMessage.textContent = "You Win! 🎉";
-        statusMessage.className = "status-message status-win";
+        gameOver = true; gamesWon++; gamesPlayed++;
+        statusMsg.textContent = 'You Win! 🎉';
+        statusMsg.className   = 'status-message status-win';
         btnRestart.style.display = 'inline-block';
         btnRefresh.style.display = 'none';
     } else if (wrongGuesses >= maxErrors && !godMode && !gameOver) {
-        gameOver = true;
-        gamesPlayed++;
+        gameOver = true; gamesPlayed++;
         const answer = isAdversarial
             ? possibleWords[Math.floor(Math.random() * possibleWords.length)]
             : regularWord;
-        statusMessage.textContent = `Game Over. The word was: ${answer}`;
-        statusMessage.className = "status-message status-lose";
+        statusMsg.textContent = `Game Over. The word was: ${answer}`;
+        statusMsg.className   = 'status-message status-lose';
         btnRestart.style.display = 'inline-block';
         btnRefresh.style.display = 'none';
-
-        // Reveal missed letters
         for (let i = 0; i < currentWordLength; i++) {
-            if (currentPattern[i] === '_') {
+            if (currentPattern[i] === '_')
                 currentPattern[i] = `<span style="color:var(--error-color)">${answer[i]}</span>`;
-            }
         }
     }
 }
 
+// ── UI ────────────────────────────────────────────────────────────────────────
 function updateUI() {
     recordLabel.textContent = `Record: ${gamesWon}/${gamesPlayed}`;
 
-    // Word display
     wordDisplay.innerHTML = '';
     for (let i = 0; i < currentWordLength; i++) {
-        const box = document.createElement('div');
+        const box  = document.createElement('div');
         box.classList.add('letter-box');
         const char = currentPattern[i];
         if (char !== '_') {
@@ -223,26 +255,21 @@ function updateUI() {
         wordDisplay.appendChild(box);
     }
 
-    // Body parts — show part-N if wrongGuesses > N
-    const isGodSaving = wrongGuesses >= maxErrors && godMode;
-    const partColor = isGodSaving ? "#f59e0b" : "var(--error-color)";
+    const godSaving  = wrongGuesses >= maxErrors && godMode;
+    const partColor  = godSaving ? '#f59e0b' : 'var(--error-color)';
 
     for (let i = 0; i < TOTAL_PARTS; i++) {
         document.querySelectorAll(`.part-${i}`).forEach(el => {
             const show = i < wrongGuesses;
             el.classList.toggle('hidden', !show);
-            if (show) el.style.stroke = partColor;
-            else el.style.stroke = 'var(--error-color)';
+            el.style.stroke = show ? partColor : 'var(--error-color)';
         });
     }
 
-    // Halo
     const halo = document.querySelector('.part-halo');
-    if (halo) halo.classList.toggle('hidden', !isGodSaving);
+    if (halo) halo.classList.toggle('hidden', !godSaving);
 
-    if (gameOver) {
-        document.querySelectorAll('.key').forEach(btn => btn.disabled = true);
-    }
+    if (gameOver) document.querySelectorAll('.key').forEach(b => b.disabled = true);
 }
 
 updateToggleLabels();
