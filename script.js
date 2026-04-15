@@ -255,6 +255,23 @@ function updateUI() {
         wordDisplay.appendChild(box);
     }
 
+    // Adaptive letter-box sizing — scale down only when needed
+    {
+        const GAP_PX   = 8;   // 0.5rem at 16px
+        const BASE_W   = 48;  // 3rem
+        const BASE_H   = 56;  // 3.5rem
+        const BASE_F   = 32;  // 2rem
+        const BASE_BRD = 4;
+        const available = (wordDisplay.parentElement?.clientWidth ?? 480) - 32;
+        const needed    = currentWordLength * (BASE_W + GAP_PX) - GAP_PX;
+        const scale     = needed > available ? available / needed : 1;
+        const root      = document.documentElement;
+        root.style.setProperty('--lb-w',      Math.floor(BASE_W   * scale) + 'px');
+        root.style.setProperty('--lb-h',      Math.floor(BASE_H   * scale) + 'px');
+        root.style.setProperty('--lb-font',   Math.floor(BASE_F   * scale) + 'px');
+        root.style.setProperty('--lb-border', Math.max(2, Math.floor(BASE_BRD * scale)) + 'px');
+    }
+
     const godSaving  = wrongGuesses >= maxErrors && godMode;
     const partColor  = godSaving ? '#f59e0b' : 'var(--error-color)';
 
