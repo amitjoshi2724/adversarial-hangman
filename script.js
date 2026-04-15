@@ -16,8 +16,8 @@ let gameOver = false;
 const modeToggle   = document.getElementById('modeToggle');
 const godToggle    = document.getElementById('godToggle');
 const guessesInput = document.getElementById('guessesInput');
-const guessLockMsg = document.getElementById('guessLockMsg');
 const recordLabel  = document.getElementById('recordLabel');
+const guessesLabel = document.getElementById('guessesLabel');
 const btnRefresh   = document.getElementById('btnRefreshBot');
 const btnRestart   = document.getElementById('btnRestart');
 const keyboardEl   = document.getElementById('keyboard');
@@ -133,8 +133,8 @@ function initGame() {
     godMode       = godToggle.checked;
     maxErrors     = Math.max(6, Math.min(TOTAL_PARTS, parseInt(guessesInput.value) || 10));
 
-    // Reset guess tooltip
-    if (guessLockMsg) guessLockMsg.style.display = 'none';
+    // Reset guess label
+    if (guessesLabel) guessesLabel.textContent = 'Guess Limit:';
     guessesInput.disabled      = false;
     guessesInput.style.opacity = '1';
 
@@ -162,11 +162,11 @@ function handleGuess(letter) {
     if (gameOver || guessedLetters.has(letter)) return;
     guessedLetters.add(letter);
 
-    // Lock guess input after first letter — show hover tooltip
+    // Lock guess input after first letter — update label text
     if (guessedLetters.size === 1) {
         guessesInput.disabled      = true;
         guessesInput.style.opacity = '0.5';
-        if (guessLockMsg) guessLockMsg.style.display = 'block';
+        if (guessesLabel) guessesLabel.textContent = 'Guess Limit — locked mid-game (enable Always Win for more room):';
     }
 
     let hit = false;

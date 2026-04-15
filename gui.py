@@ -94,8 +94,9 @@ class HangmanGUI:
 
         # Guesses spinbox
         guf = tk.Frame(right, bg="#0f172a"); guf.pack(anchor=tk.E, pady=2)
-        tk.Label(guf, text="Guesses:", fg="#94a3b8", bg="#0f172a",
-                 font=("Outfit", 10)).pack(side=tk.LEFT, padx=5)
+        self.guesses_label = tk.Label(guf, text="Guess Limit:", fg="#94a3b8", bg="#0f172a",
+                 font=("Outfit", 10))
+        self.guesses_label.pack(side=tk.LEFT, padx=5)
         self.guesses_var  = tk.IntVar(value=10)
         self.guesses_spin = tk.Spinbox(
             guf, from_=6, to=TOTAL_PARTS, textvariable=self.guesses_var,
@@ -230,6 +231,7 @@ class HangmanGUI:
             self.refresh_btn.pack(side=tk.LEFT, padx=10)
         # Unlock spinbox
         self.guesses_spin.config(state='normal')
+        self.guesses_label.config(text="Guess Limit:")
 
     # ── Drawing ───────────────────────────────────────────────────────────────
     def draw_scaffold(self):
@@ -330,6 +332,8 @@ class HangmanGUI:
             # Lock spinbox after first guess
             if len(self.game.guessed_letters) == 1:
                 self.guesses_spin.config(state='disabled')
+                self.guesses_label.config(
+                    text="Guess Limit — locked mid-game (enable Always Win for more room):")
 
             self.update_ui()
             if self.game.game_over:
