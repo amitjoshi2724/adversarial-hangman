@@ -3,8 +3,9 @@ let possibleWords = [];
 let currentWordLength = 0;
 let guessedLetters = new Set();
 let wrongGuesses = 0;
-const MAX_ERRORS = 6;
-let isAdversarial = true; // Set adversarial as default
+const TOTAL_PARTS = 19; // Total body parts available (0-18)
+let maxErrors = 10;     // Configurable by user, min 6
+let isAdversarial = true;
 let godMode = false;
 let gamesWon = 0;
 let gamesPlayed = 0;
@@ -14,20 +15,19 @@ let gameOver = false;
 
 const modeToggle = document.getElementById('modeToggle');
 const godToggle = document.getElementById('godToggle');
+const guessesInput = document.getElementById('guessesInput');
 const recordLabel = document.getElementById('recordLabel');
 const btnRefresh = document.getElementById('btnRefreshBot');
-
+const btnRestart = document.getElementById('btnRestart');
 const keyboardContainer = document.getElementById('keyboard');
 const wordDisplay = document.getElementById('wordDisplay');
 const statusMessage = document.getElementById('statusMessage');
-const btnRestart = document.getElementById('btnRestart');
 const toggleLabels = document.querySelectorAll('.toggle-label');
 
 // Initialize Keyboard
 function buildKeyboard() {
     keyboardContainer.innerHTML = '';
-    const letters = 'abcdefghijklmnopqrstuvwxyz'.split('');
-    letters.forEach(letter => {
+    'abcdefghijklmnopqrstuvwxyz'.split('').forEach(letter => {
         const btn = document.createElement('button');
         btn.classList.add('key');
         btn.textContent = letter;
@@ -41,9 +41,7 @@ function buildKeyboard() {
 document.addEventListener('keydown', (e) => {
     if (gameOver) return;
     const key = e.key.toLowerCase();
-    if (/^[a-z]$/.test(key)) {
-        handleGuess(key);
-    }
+    if (/^[a-z]$/.test(key)) handleGuess(key);
 });
 
 modeToggle.addEventListener('change', () => {
@@ -53,13 +51,18 @@ modeToggle.addEventListener('change', () => {
 
 godToggle.addEventListener('change', () => {
     godMode = godToggle.checked;
-    if (godMode) {
-        toggleLabels[0].classList.add('active'); // God Mode label
-    } else {
-        toggleLabels[0].classList.remove('active');
-    }
+    toggleLabels[0].classList.toggle('active', godMode);
     checkGameEnd();
     updateUI();
+});
+
+guessesInput.addEventListener('change', () => {
+    let val = parseInt(guessesInput.value);
+    if (isNaN(val) || val < 6) val = 6;
+    if (val > TOTAL_PARTS) val = TOTAL_PARTS;
+    guessesInput.value = val;
+    maxErrors = val;
+    refreshGame();
 });
 
 btnRefresh.addEventListener('click', refreshGame);
@@ -71,13 +74,8 @@ function refreshGame() {
 
 function updateToggleLabels() {
     isAdversarial = modeToggle.checked;
-    if (isAdversarial) {
-        toggleLabels[1].classList.remove('active'); // Regular
-        toggleLabels[2].classList.add('active'); // Adversarial
-    } else {
-        toggleLabels[1].classList.add('active');
-        toggleLabels[2].classList.remove('active');
-    }
+    toggleLabels[1].classList.toggle('active', !isAdversarial);
+    toggleLabels[2].classList.toggle('active', isAdversarial);
 }
 
 async function loadDictionary() {
@@ -87,8 +85,9 @@ async function loadDictionary() {
         const text = await response.text();
         dictionary = text.split(/\r?\n/).map(w => w.trim().toLowerCase()).filter(w => /^[a-z]+$/.test(w));
     } catch (e) {
-        console.warn("Using fallback dictionary: ", e);
-        dictionary = ['apple', 'banana', 'orange', 'grape', 'peach', 'lemon', 'melon', 'strawberry', 'blueberry', 'blackberry', 'kiwi', 'pineapple', 'watermelon'];
+        console.warn("Using fallback dictionary:", e);
+        dictionary = ['apple', 'banana', 'orange', 'grape', 'peach', 'lemon', 'melon',
+                      'strawberry', 'blueberry', 'blackberry', 'kiwi', 'pineapple', 'watermelon'];
     }
     initGame();
 }
@@ -101,13 +100,13 @@ function initGame() {
     gameOver = false;
     isAdversarial = modeToggle.checked;
     godMode = godToggle.checked;
+    maxErrors = Math.max(6, Math.min(TOTAL_PARTS, parseInt(guessesInput.value) || 10));
 
-    btnRestart.style.display = 'none'; // hide Next Word
-    btnRefresh.style.display = 'inline-block'; // show refresh button
+    btnRestart.style.display = 'none';
+    btnRefresh.style.display = 'inline-block';
 
     const randomSeedWord = dictionary[Math.floor(Math.random() * dictionary.length)];
     currentWordLength = randomSeedWord.length;
-
     possibleWords = dictionary.filter(w => w.length === currentWordLength);
 
     if (!isAdversarial) {
@@ -133,72 +132,47 @@ function handleGuess(letter) {
         for (const word of possibleWords) {
             let pattern = '';
             for (let i = 0; i < currentWordLength; i++) {
-                if (currentPattern[i] !== '_') {
-                    pattern += currentPattern[i];
-                } else if (word[i] === letter) {
-                    pattern += letter;
-                } else {
-                    pattern += '_';
-                }
+                pattern += currentPattern[i] !== '_' ? currentPattern[i]
+                         : word[i] === letter       ? letter
+                         : '_';
             }
             if (!groups[pattern]) groups[pattern] = [];
             groups[pattern].push(word);
         }
 
-        // Probabilistic adversarial selection
         const alpha = 1.5;
         const patterns = Object.keys(groups);
         const rawWeights = patterns.map(p => Math.pow(groups[p].length, alpha));
-        const totalWeight = rawWeights.reduce((acc, val) => acc + val, 0);
-        
+        const totalWeight = rawWeights.reduce((a, v) => a + v, 0);
+
         // Debug logging
         console.log(`--- Adversarial Selection (Alpha=${alpha}) ---`);
-        patterns.forEach((p, index) => {
-            const prob = (rawWeights[index] / totalWeight * 100).toFixed(2);
-            console.log(`Pattern: ${p} | Size: ${groups[p].length} | Prob: ${prob}%`);
-        });
+        patterns.forEach((p, i) => console.log(`Pattern: ${p} | Size: ${groups[p].length} | Prob: ${(rawWeights[i]/totalWeight*100).toFixed(2)}%`));
 
         let r = Math.random() * totalWeight;
-        let cumulativeWeight = 0;
-        let chosenPatternStr = patterns[patterns.length - 1];
-        
+        let cum = 0;
+        let chosen = patterns[patterns.length - 1];
         for (let i = 0; i < patterns.length; i++) {
-            cumulativeWeight += rawWeights[i];
-            if (r <= cumulativeWeight) {
-                chosenPatternStr = patterns[i];
-                break;
-            }
+            cum += rawWeights[i];
+            if (r <= cum) { chosen = patterns[i]; break; }
         }
-        
-        possibleWords = groups[chosenPatternStr];
 
+        possibleWords = groups[chosen];
         for (let i = 0; i < currentWordLength; i++) {
-            if (chosenPatternStr[i] === letter) {
-                hit = true;
-                currentPattern[i] = letter;
-            }
+            if (chosen[i] === letter) { hit = true; currentPattern[i] = letter; }
         }
     } else {
         for (let i = 0; i < currentWordLength; i++) {
-            if (regularWord[i] === letter) {
-                hit = true;
-                currentPattern[i] = letter;
-            }
+            if (regularWord[i] === letter) { hit = true; currentPattern[i] = letter; }
         }
     }
 
     const keyBtn = document.getElementById(`key-${letter}`);
     if (keyBtn) {
         keyBtn.disabled = true;
-        if (hit) {
-            keyBtn.classList.add('correct');
-        } else {
-            keyBtn.classList.add('incorrect');
-            wrongGuesses++;
-        }
-    } else if (!hit) {
-        wrongGuesses++;
+        keyBtn.classList.add(hit ? 'correct' : 'incorrect');
     }
+    if (!hit) wrongGuesses++;
 
     checkGameEnd();
     updateUI();
@@ -209,19 +183,22 @@ function checkGameEnd() {
         gameOver = true;
         gamesWon++;
         gamesPlayed++;
-        statusMessage.textContent = "You Win!";
+        statusMessage.textContent = "You Win! 🎉";
         statusMessage.className = "status-message status-win";
         btnRestart.style.display = 'inline-block';
         btnRefresh.style.display = 'none';
-    } else if (wrongGuesses >= MAX_ERRORS && !godMode && !gameOver) {
+    } else if (wrongGuesses >= maxErrors && !godMode && !gameOver) {
         gameOver = true;
         gamesPlayed++;
-        let answer = isAdversarial ? possibleWords[Math.floor(Math.random() * possibleWords.length)] : regularWord;
-        statusMessage.textContent = `Game Over. Word was: ${answer}`;
+        const answer = isAdversarial
+            ? possibleWords[Math.floor(Math.random() * possibleWords.length)]
+            : regularWord;
+        statusMessage.textContent = `Game Over. The word was: ${answer}`;
         statusMessage.className = "status-message status-lose";
         btnRestart.style.display = 'inline-block';
         btnRefresh.style.display = 'none';
 
+        // Reveal missed letters
         for (let i = 0; i < currentWordLength; i++) {
             if (currentPattern[i] === '_') {
                 currentPattern[i] = `<span style="color:var(--error-color)">${answer[i]}</span>`;
@@ -232,56 +209,39 @@ function checkGameEnd() {
 
 function updateUI() {
     recordLabel.textContent = `Record: ${gamesWon}/${gamesPlayed}`;
-    
+
+    // Word display
     wordDisplay.innerHTML = '';
     for (let i = 0; i < currentWordLength; i++) {
         const box = document.createElement('div');
         box.classList.add('letter-box');
-
         const char = currentPattern[i];
         if (char !== '_') {
             box.innerHTML = char;
-            if (typeof char === 'string' && !char.includes('span')) {
-                box.classList.add('revealed');
-            } else {
-                box.classList.add('missed');
-            }
+            box.classList.add(char.includes('span') ? 'missed' : 'revealed');
         }
         wordDisplay.appendChild(box);
     }
 
-    for (let i = 0; i <= MAX_ERRORS; i++) {
-        const part = document.querySelector(`.part-${i}`);
-        if (part) {
-            if (i < wrongGuesses) {
-                part.classList.remove('hidden');
-                // Give it a gold stroke if saved by god mode
-                if (wrongGuesses >= 6 && godMode) {
-                    part.style.stroke = "#f59e0b";
-                } else {
-                    part.style.stroke = "var(--error-color)";
-                }
-            } else {
-                part.classList.add('hidden');
-                part.style.stroke = "var(--error-color)";
-            }
-        }
+    // Body parts — show part-N if wrongGuesses > N
+    const isGodSaving = wrongGuesses >= maxErrors && godMode;
+    const partColor = isGodSaving ? "#f59e0b" : "var(--error-color)";
+
+    for (let i = 0; i < TOTAL_PARTS; i++) {
+        document.querySelectorAll(`.part-${i}`).forEach(el => {
+            const show = i < wrongGuesses;
+            el.classList.toggle('hidden', !show);
+            if (show) el.style.stroke = partColor;
+            else el.style.stroke = 'var(--error-color)';
+        });
     }
 
-    // Toggle Halo
+    // Halo
     const halo = document.querySelector('.part-halo');
-    if (halo) {
-        if (wrongGuesses >= 6 && godMode) {
-            halo.classList.remove('hidden');
-        } else {
-            halo.classList.add('hidden');
-        }
-    }
+    if (halo) halo.classList.toggle('hidden', !isGodSaving);
 
     if (gameOver) {
-        document.querySelectorAll('.key').forEach(btn => {
-            btn.disabled = true;
-        });
+        document.querySelectorAll('.key').forEach(btn => btn.disabled = true);
     }
 }
 

@@ -2,7 +2,7 @@ import random
 import os
 
 class HangmanGame:
-    def __init__(self, dict_path='dict.txt', is_adversarial=True, god_mode=False, max_errors=6):
+    def __init__(self, dict_path='dict.txt', is_adversarial=True, god_mode=False, max_errors=10):
         self.is_adversarial = is_adversarial
         self.god_mode = god_mode
         self.max_errors = max_errors

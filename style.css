@@ -80,15 +80,51 @@ h1 {
 }
 
 .btn-icon {
-    background: transparent;
-    border: none;
-    font-size: 1.25rem;
+    background: var(--keyboard-bg);
+    border: 1px solid rgba(255,255,255,0.1);
+    border-radius: 2rem;
+    color: var(--text-primary);
+    font-size: 1rem;
+    font-family: inherit;
+    font-weight: 600;
+    padding: 0.5rem 1.25rem;
     cursor: pointer;
-    transition: transform 0.3s ease;
+    transition: transform 0.3s ease, background 0.2s;
 }
 
 .btn-icon:hover {
-    transform: rotate(180deg) scale(1.1);
+    transform: rotate(180deg) scale(1.05);
+    background: var(--keyboard-hover);
+}
+
+.bottom-controls {
+    display: flex;
+    gap: 1rem;
+    align-items: center;
+    justify-content: center;
+}
+
+.guesses-container {
+    gap: 0.5rem;
+}
+
+.guesses-input {
+    width: 3.5rem;
+    padding: 0.25rem 0.5rem;
+    border-radius: 0.5rem;
+    border: 1px solid rgba(255,255,255,0.2);
+    background: var(--keyboard-bg);
+    color: var(--text-primary);
+    font-family: inherit;
+    font-size: 0.9rem;
+    font-weight: 600;
+    text-align: center;
+}
+
+.guesses-input:focus {
+    outline: none;
+    border-color: #8b5cf6;
+    box-shadow: 0 0 0 2px rgba(139,92,246,0.3);
 }
 
 .toggles-container {
@@ -119,7 +155,8 @@ h1 {
     color: #c084fc;
 }
 
-.god-label.active {
+.god-label.active,
+.always-win-label.active {
     color: #f59e0b; /* amber */
 }
 
@@ -221,14 +258,14 @@ main {
 
 .body-part {
     stroke: var(--error-color);
-    stroke-dasharray: 100;
+    stroke-dasharray: 600;
     stroke-dashoffset: 0;
-    transition: stroke-dashoffset 0.5s ease-out, opacity 0.3s;
+    transition: stroke-dashoffset 0.6s ease-out, opacity 0.3s;
 }
 
 .body-part.hidden {
     opacity: 0;
-    stroke-dashoffset: 100;
+    stroke-dashoffset: 600;
 }
 
 .word-container {
