@@ -94,7 +94,7 @@ class HangmanGUI:
 
         # Mode description
         desc_f = tk.Frame(right, bg="#0f172a"); desc_f.pack(anchor=tk.E, pady=(0, 5))
-        tk.Label(desc_f, text="The game decides the word as you play to keep you guessing longer",
+        tk.Label(desc_f, text="In Adversarial mode, the game decides the word as you play to keep you guessing longer",
                  fg="#94a3b8", bg="#0f172a", font=("Outfit", 8), justify=tk.RIGHT, wraplength=260).pack(side=tk.RIGHT, padx=5)
 
         # Guesses spinbox
