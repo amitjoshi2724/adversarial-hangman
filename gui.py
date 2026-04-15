@@ -104,15 +104,8 @@ class HangmanGUI:
             relief=tk.FLAT, command=self.on_guesses_change
         )
         self.guesses_spin.pack(side=tk.LEFT)
-
-        # Lock message (amber bar)
-        self.lock_label = tk.Label(
-            self.root,
-            text="⚠ Guess limit locked mid-game. Enable 'Always Win' if you need more room.",
-            font=("Outfit", 9), fg="#f59e0b",
-            bg="#1e1a00", pady=4
-        )
-        # packed/unpacked dynamically
+        # Tooltip hint shown via title attribute (native OS tooltip)
+        self.guesses_spin.config(cursor="question_arrow")
 
         # Hangman canvas
         self.canvas = tk.Canvas(self.root, width=230, height=280,
@@ -237,7 +230,6 @@ class HangmanGUI:
             self.refresh_btn.pack(side=tk.LEFT, padx=10)
         # Unlock spinbox
         self.guesses_spin.config(state='normal')
-        self.lock_label.pack_forget()
 
     # ── Drawing ───────────────────────────────────────────────────────────────
     def draw_scaffold(self):
@@ -338,8 +330,6 @@ class HangmanGUI:
             # Lock spinbox after first guess
             if len(self.game.guessed_letters) == 1:
                 self.guesses_spin.config(state='disabled')
-                if not self.lock_label.winfo_ismapped():
-                    self.lock_label.pack(fill=tk.X, padx=20, pady=(0, 4))
 
             self.update_ui()
             if self.game.game_over:

@@ -133,10 +133,10 @@ function initGame() {
     godMode       = godToggle.checked;
     maxErrors     = Math.max(6, Math.min(TOTAL_PARTS, parseInt(guessesInput.value) || 10));
 
-    // Unlock guess input
-    guessesInput.disabled    = false;
-    guessesInput.style.opacity = '1';
+    // Reset guess tooltip
     if (guessLockMsg) guessLockMsg.style.display = 'none';
+    guessesInput.disabled      = false;
+    guessesInput.style.opacity = '1';
 
     btnRestart.style.display = 'none';
     btnRefresh.style.display = 'inline-block';
@@ -162,9 +162,9 @@ function handleGuess(letter) {
     if (gameOver || guessedLetters.has(letter)) return;
     guessedLetters.add(letter);
 
-    // Lock guess input after first letter
+    // Lock guess input after first letter — show hover tooltip
     if (guessedLetters.size === 1) {
-        guessesInput.disabled    = true;
+        guessesInput.disabled      = true;
         guessesInput.style.opacity = '0.5';
         if (guessLockMsg) guessLockMsg.style.display = 'block';
     }

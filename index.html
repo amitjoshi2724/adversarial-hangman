@@ -25,16 +25,13 @@
         <label class="switch"><input type="checkbox" id="modeToggle" checked><span class="slider round"></span></label>
         <span class="toggle-label adversarial-label">Adversarial</span>
       </div>
-      <div class="toggle-container guesses-container">
+      <div class="toggle-container guesses-container tooltip-wrap">
         <span class="toggle-label">Guesses:</span>
         <input type="number" id="guessesInput" value="10" min="6" max="26" class="guesses-input">
+        <span class="tooltip-text" id="guessLockMsg" style="display:none;">Locked mid-game — enable Always Win for more room.</span>
       </div>
     </div>
   </header>
-
-  <div id="guessLockMsg" class="guess-lock-msg" style="display:none;">
-    ⚠️ Guess limit locked mid-game. Enable <strong>Always Win</strong> if you need more room.
-  </div>
 
   <main>
     <div class="game-area">
