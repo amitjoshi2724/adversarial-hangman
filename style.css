@@ -104,6 +104,77 @@ h1 {
     justify-content: center;
 }
 
+.control-group {
+    display: flex;
+    gap: 0.75rem;
+    align-items: center;
+}
+
+.btn-text-toggle {
+    background: transparent;
+    border: 1px solid rgba(255,255,255,0.2);
+    border-radius: 2rem;
+    color: var(--text-secondary);
+    font-size: 0.8rem;
+    font-weight: 600;
+    padding: 0.4rem 1rem;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.btn-text-toggle:hover {
+    border-color: var(--accent-color);
+    color: var(--text-primary);
+}
+
+.stats-panel {
+    background: rgba(30, 41, 59, 0.5);
+    backdrop-filter: blur(8px);
+    border: 1px solid rgba(255, 255, 255, 0.05);
+    border-radius: 1rem;
+    padding: 1rem;
+    margin-top: 0.5rem;
+    width: 100%;
+    max-width: 320px;
+    transition: all 0.3s ease;
+}
+
+.stats-panel.hidden {
+    display: none;
+}
+
+.stats-grid {
+    display: flex;
+    justify-content: space-around;
+    align-items: center;
+}
+
+.stat-item {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.2rem;
+    flex: 1;
+}
+
+.stat-item.border-right {
+    border-right: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.stat-label {
+    font-size: 0.65rem;
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+    color: var(--text-secondary);
+    font-weight: 700;
+}
+
+.stat-value {
+    font-size: 1rem;
+    font-weight: 800;
+    color: var(--accent-color);
+}
+
 .guesses-container {
     gap: 0.5rem;
 }

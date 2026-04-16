@@ -16,6 +16,7 @@ class HangmanGame:
         self.won = False
         self.games_won = 0
         self.games_played = 0
+        self.last_selection_prob = 0.0
         
         # Load dictionary
         self.dictionary = self._load_dictionary(dict_path)
@@ -43,6 +44,7 @@ class HangmanGame:
         self.wrong_guesses = 0
         self.game_over = False
         self.won = False
+        self.last_selection_prob = 0.0
         
         # Pick random word to determine length uniformly
         seed_word = random.choice(self.dictionary)
@@ -93,6 +95,8 @@ class HangmanGame:
                 print(f"Pattern: {pattern_display} | Size: {len(groups[p])} | Weight: {w:.2f} | Prob: {prob:.2%}")
             
             chosen_pattern = random.choices(patterns, weights=raw_weights, k=1)[0]
+            chosen_idx = patterns.index(chosen_pattern)
+            self.last_selection_prob = probabilities[chosen_idx]
             self.possible_words = groups[chosen_pattern]
             
             for i in range(self.word_length):

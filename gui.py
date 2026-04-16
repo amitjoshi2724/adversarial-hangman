@@ -146,6 +146,25 @@ class HangmanGUI:
             relief=tk.FLAT, padx=12, pady=6, command=self.refresh_action)
         self.refresh_btn.pack(side=tk.LEFT, padx=10)
 
+        self.show_stats = False
+        self.stats_btn = tk.Button(
+            self.bottom_frame, text="Show Stats",
+            font=("Outfit", 10, "bold"), bg="#1e293b", fg="#94a3b8",
+            relief=tk.FLAT, padx=10, pady=6, command=self.toggle_stats)
+        self.stats_btn.pack(side=tk.LEFT, padx=5)
+
+        # Stats Frame
+        self.stats_frame = tk.Frame(self.root, bg="#1e293b", padx=15, pady=8)
+        # Hidden by default
+        
+        self.pool_label = tk.Label(self.stats_frame, text="Pool: -", 
+                                   font=("Outfit", 10), fg="#60a5fa", bg="#1e293b")
+        self.pool_label.pack(side=tk.LEFT, padx=12)
+
+        self.prob_label = tk.Label(self.stats_frame, text="Prob: -", 
+                                   font=("Outfit", 10), fg="#f59e0b", bg="#1e293b")
+        self.prob_label.pack(side=tk.LEFT, padx=12)
+
         self.root.bind('<Key>', self.handle_keypress)
 
     # ── Guesses spinbox ───────────────────────────────────────────────────────
@@ -237,8 +256,28 @@ class HangmanGUI:
         # Unlock spinbox
         self.guesses_spin.config(state='normal')
         self.guesses_label.config(text="Guess Limit:")
+        self.update_stats()
 
     # ── Drawing ───────────────────────────────────────────────────────────────
+    def toggle_stats(self):
+        self.show_stats = not self.show_stats
+        if self.show_stats:
+            self.stats_frame.pack(pady=5)
+            self.stats_btn.config(text="Hide Stats", fg="#f8fafc")
+        else:
+            self.stats_frame.pack_forget()
+            self.stats_btn.config(text="Show Stats", fg="#94a3b8")
+        self.update_stats()
+
+    def update_stats(self):
+        if not self.game: return
+        self.pool_label.config(text=f"Pool: {len(self.game.possible_words)}")
+        if self.game.is_adversarial and self.game.guessed_letters:
+            prob_text = f"Prob: {self.game.last_selection_prob:.1%}"
+        else:
+            prob_text = "Prob: -"
+        self.prob_label.config(text=prob_text)
+
     def draw_scaffold(self):
         c = self.canvas; c.delete("all")
         c.create_line(20,  260, 110, 260, width=4, fill="#94a3b8", capstyle=tk.ROUND)
@@ -341,6 +380,7 @@ class HangmanGUI:
                     text="Guess Limit — locked mid-game (enable Always Win for more room):")
 
             self.update_ui()
+            self.update_stats()
             if self.game.game_over:
                 self.end_game()
 

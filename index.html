@@ -120,7 +120,23 @@
             <div class="keyboard" id="keyboard"></div>
             <div class="bottom-controls">
                 <button class="btn-restart" id="btnRestart" style="display:none;">Next Word</button>
-                <button class="btn-icon" id="btnRefreshBot">🔄 Refresh</button>
+                <div class="control-group">
+                    <button class="btn-icon" id="btnRefreshBot" title="Refresh">🔄 Refresh</button>
+                    <button class="btn-text-toggle" id="btnToggleStats">Show Stats</button>
+                </div>
+            </div>
+
+            <div class="stats-panel hidden" id="statsPanel">
+                <div class="stats-grid">
+                    <div class="stat-item border-right">
+                        <span class="stat-label">Remaining Words</span>
+                        <span class="stat-value" id="statPoolSize">-</span>
+                    </div>
+                    <div class="stat-item">
+                        <span class="stat-label">Selection Prob.</span>
+                        <span class="stat-value" id="statProb">-</span>
+                    </div>
+                </div>
             </div>
         </main>
     </div>

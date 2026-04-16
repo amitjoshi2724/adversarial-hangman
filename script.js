@@ -24,6 +24,13 @@ const keyboardEl   = document.getElementById('keyboard');
 const wordDisplay  = document.getElementById('wordDisplay');
 const statusMsg    = document.getElementById('statusMessage');
 const toggleLabels = document.querySelectorAll('.toggle-label');
+const btnToggleStats = document.getElementById('btnToggleStats');
+const statsPanel     = document.getElementById('statsPanel');
+const statPoolSize   = document.getElementById('statPoolSize');
+const statProb       = document.getElementById('statProb');
+
+let lastSelectionProb = 0;
+let showStats = false;
 
 // ── Keyboard ──────────────────────────────────────────────────────────────────
 function buildKeyboard() {
@@ -100,6 +107,12 @@ guessesInput.addEventListener('change', () => {
 btnRefresh.addEventListener('click', refreshGame);
 btnRestart.addEventListener('click', initGame);
 
+btnToggleStats.addEventListener('click', () => {
+    showStats = !showStats;
+    statsPanel.classList.toggle('hidden', !showStats);
+    btnToggleStats.textContent = showStats ? 'Hide Stats' : 'Show Stats';
+});
+
 function refreshGame() { initGame(); }
 
 function updateToggleLabels() {
@@ -127,8 +140,9 @@ function initGame() {
     if (!dictionary.length) return;
 
     guessedLetters.clear();
-    wrongGuesses  = 0;
-    gameOver      = false;
+    wrongGuesses      = 0;
+    lastSelectionProb = 0;
+    gameOver          = false;
     isAdversarial = modeToggle.checked;
     godMode       = godToggle.checked;
     maxErrors     = Math.max(6, Math.min(TOTAL_PARTS, parseInt(guessesInput.value) || 10));
@@ -198,6 +212,8 @@ function handleGuess(letter) {
         }
 
         possibleWords = groups[chosen];
+        lastSelectionProb = (weights[pats.indexOf(chosen)] / total) * 100;
+
         for (let i = 0; i < currentWordLength; i++) {
             if (chosen[i] === letter) { hit = true; currentPattern[i] = letter; }
         }
@@ -242,6 +258,12 @@ function checkGameEnd() {
 // ── UI ────────────────────────────────────────────────────────────────────────
 function updateUI() {
     recordLabel.textContent = `Record: ${gamesWon}/${gamesPlayed}`;
+
+    // Update stats
+    statPoolSize.textContent = possibleWords.length;
+    statProb.textContent = isAdversarial && guessedLetters.size > 0 
+        ? `${lastSelectionProb.toFixed(1)}%` 
+        : '-';
 
     wordDisplay.innerHTML = '';
     for (let i = 0; i < currentWordLength; i++) {
