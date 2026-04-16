@@ -12,6 +12,7 @@ let gamesPlayed = 0;
 let regularWord = "";
 let currentPattern = [];
 let gameOver = false;
+let revealOrder = []; // Ordered indices of body parts to show
 
 const modeToggle   = document.getElementById('modeToggle');
 const godToggle    = document.getElementById('godToggle');
@@ -121,6 +122,62 @@ function updateToggleLabels() {
     toggleLabels[2].classList.toggle('active',  isAdversarial); // Adversarial
 }
 
+function calculateRevealOrder(totalGuesses) {
+    const classic6 = [0, 1, 9, 10, 13, 14]; // Head, Body, L Arm, R Arm, L Leg, R Leg
+    const pairs = [
+        [4, 5],   // Eyes
+        [6, 7],   // Nose/Mouth
+        [2, 3],   // Ears
+        [11, 12], // Hands
+        [15, 16], // Feet
+        [19, 20], // Eyebrows
+        [24, 25], // Knees
+        [21, 22], // Fingers
+        [17, 18]  // Toes
+    ];
+    const solos = [8, 23]; // Hair, Belly Button
+
+    let order = [...classic6];
+    let extra = totalGuesses - 6;
+
+    // 1. If odd, prioritize Hair (solo)
+    if (extra > 0 && extra % 2 !== 0) {
+        order.push(solos[0]);
+        extra--;
+    }
+
+    // 2. Add as many pairs as fit
+    let pairIdx = 0;
+    while (extra >= 2 && pairIdx < pairs.length) {
+        order.push(...pairs[pairIdx]);
+        pairIdx++;
+        extra -= 2;
+    }
+
+    // 3. Fill remaining with remaining solos
+    let soloIdx = (order.includes(solos[0])) ? 1 : 0;
+    while (extra > 0 && soloIdx < solos.length) {
+        if (!order.includes(solos[soloIdx])) {
+            order.push(solos[soloIdx]);
+            extra--;
+        }
+        soloIdx++;
+    }
+
+    // 4. Emergency fallback: if still slots (shouldn't happen with 26), 
+    // add any missing parts in numerical order
+    if (extra > 0) {
+        for (let i = 0; i < 26 && extra > 0; i++) {
+            if (!order.includes(i)) {
+                order.push(i);
+                extra--;
+            }
+        }
+    }
+
+    return order;
+}
+
 // ── Dictionary ────────────────────────────────────────────────────────────────
 async function loadDictionary() {
     try {
@@ -146,6 +203,7 @@ function initGame() {
     isAdversarial = modeToggle.checked;
     godMode       = godToggle.checked;
     maxErrors     = Math.max(6, Math.min(TOTAL_PARTS, parseInt(guessesInput.value) || 10));
+    revealOrder   = calculateRevealOrder(maxErrors);
 
     // Reset guess label
     if (guessesLabel) guessesLabel.textContent = 'Guess Limit:';
@@ -297,11 +355,17 @@ function updateUI() {
     const godSaving  = wrongGuesses >= maxErrors && godMode;
     const partColor  = godSaving ? '#f59e0b' : 'var(--error-color)';
 
-    for (let i = 0; i < TOTAL_PARTS; i++) {
-        document.querySelectorAll(`.part-${i}`).forEach(el => {
-            const show = i < wrongGuesses;
-            el.classList.toggle('hidden', !show);
-            el.style.stroke = show ? partColor : 'var(--error-color)';
+    // Hide all parts first
+    document.querySelectorAll('.body-part').forEach(el => {
+        if (!el.classList.contains('part-halo')) el.classList.add('hidden');
+    });
+
+    // Show only the parts in revealOrder up to wrongGuesses
+    for (let i = 0; i < wrongGuesses; i++) {
+        const partIdx = revealOrder[i];
+        document.querySelectorAll(`.part-${partIdx}`).forEach(el => {
+            el.classList.remove('hidden');
+            el.style.stroke = partColor;
         });
     }
 

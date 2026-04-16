@@ -45,6 +45,7 @@ class HangmanGUI:
         self.is_adversarial = True
         self.god_mode      = False
         self.max_errors    = 10
+        self.reveal_order  = []
 
         self.canvas        = None
         self.word_label    = None
@@ -242,7 +243,45 @@ class HangmanGUI:
             self.game.god_mode       = self.god_mode
             self.game.max_errors     = self.max_errors
             self.game.start_game()
+        
+        self.reveal_order = self.calculate_reveal_order(self.max_errors)
         self.reset_ui_for_new_game()
+
+    def calculate_reveal_order(self, total_guesses):
+        classic6 = [0, 1, 9, 10, 13, 14]
+        pairs = [
+            [4, 5], [6, 7], [2, 3], [11, 12], [15, 16],
+            [19, 20], [24, 25], [21, 22], [17, 18]
+        ]
+        solos = [8, 23]
+
+        order = list(classic6)
+        extra = total_guesses - 6
+
+        if extra > 0 and extra % 2 != 0:
+            order.append(solos[0])
+            extra -= 1
+
+        pair_idx = 0
+        while extra >= 2 and pair_idx < len(pairs):
+            order.extend(pairs[pair_idx])
+            pair_idx += 1
+            extra -= 2
+
+        solo_idx = 1 if solos[0] in order else 0
+        while extra > 0 and solo_idx < len(solos):
+            if solos[solo_idx] not in order:
+                order.append(solos[solo_idx])
+                extra -= 1
+            solo_idx += 1
+
+        if extra > 0:
+            for i in range(26):
+                if extra <= 0: break
+                if i not in order:
+                    order.append(i)
+                    extra -= 1
+        return order
 
     def reset_ui_for_new_game(self):
         self.draw_scaffold()
@@ -273,9 +312,9 @@ class HangmanGUI:
         if not self.game: return
         self.pool_label.config(text=f"Pool: {len(self.game.possible_words)}")
         if self.game.is_adversarial and self.game.guessed_letters:
-            prob_text = f"Prob: {self.game.last_selection_prob:.1%}"
+            prob_text = f"Selection Probability: {self.game.last_selection_prob:.1%}"
         else:
-            prob_text = "Prob: -"
+            prob_text = "Selection Probability: -"
         self.prob_label.config(text=prob_text)
 
     def draw_scaffold(self):
@@ -335,9 +374,9 @@ class HangmanGUI:
             lambda: c.create_oval(hx+30,188,hx+38,200, width=3, outline=cl),                  # 25 R knee
         ]
 
-        for i, draw_fn in enumerate(parts):
-            if errors >= i + 1:
-                draw_fn()
+        for i in range(errors):
+            if i < len(self.reveal_order):
+                parts[self.reveal_order[i]]()
 
         # Always-Win halo
         if errors >= self.max_errors and self.god_mode:
