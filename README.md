@@ -47,4 +47,10 @@ python3 cli.py
 
 ---
 
-*Good luck, and may the odds be ever in your favor against the Adversarial Engine!*
+## ☕ Support
+
+If you enjoy the game and want to support its development, you can support me here: [https://ko-fi.com/amitjoshi2724](https://ko-fi.com/amitjoshi2724)!
+
+---
+
+*Good luck!*

@@ -494,14 +494,7 @@ main {
 .btn-restart:hover { transform: translateY(-2px); box-shadow: 0 6px 20px rgba(59,130,246,0.5); }
 .btn-restart:active { transform: translateY(1px); }
 
-footer {
-    display: flex;
-    justify-content: center;
-    border-top: 1px solid rgba(255, 255, 255, 0.05);
-    padding-top: 1rem;
-    margin-top: 0.5rem;
-}
-
 #kofi-container {
     min-height: 40px;
+    margin-top: 0.5rem;
 }
