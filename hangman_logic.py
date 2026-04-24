@@ -2,10 +2,11 @@ import random
 import os
 
 class HangmanGame:
-    def __init__(self, dict_path='dict.txt', is_adversarial=True, god_mode=False, max_errors=10):
+    def __init__(self, dict_path='dict.txt', is_adversarial=True, god_mode=False, max_errors=10, alpha=1.5):
         self.is_adversarial = is_adversarial
         self.god_mode = god_mode
         self.max_errors = max_errors
+        self.alpha = alpha
         self.word_length = 0
         self.possible_words = []
         self.guessed_letters = set()
@@ -82,14 +83,13 @@ class HangmanGame:
                 groups[pattern_tuple].append(word)
                 
             # Probabilistic adversarial selection
-            alpha = 1.5
             patterns = list(groups.keys())
-            raw_weights = [len(groups[p]) ** alpha for p in patterns]
+            raw_weights = [len(groups[p]) ** self.alpha for p in patterns]
             total_weight = sum(raw_weights)
             probabilities = [w / total_weight for w in raw_weights]
             
             # Debug logging
-            print(f"--- Adversarial Selection (Alpha={alpha}) ---")
+            print(f"--- Adversarial Selection (Alpha={self.alpha}) ---")
             for p, w, prob in zip(patterns, raw_weights, probabilities):
                 pattern_display = "".join(p)
                 print(f"Pattern: {pattern_display} | Size: {len(groups[p])} | Weight: {w:.2f} | Prob: {prob:.2%}")

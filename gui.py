@@ -34,6 +34,38 @@ class IOSToggle(tk.Canvas):
             self.command(self.is_on)
 
 
+class KeyboardKey(tk.Label):
+    def __init__(self, parent, char, command, *args, **kwargs):
+        super().__init__(parent, text=char.upper(), width=4, height=2,
+                         font=("Outfit", 12, "bold"), bg="#1e293b", fg="#f8fafc",
+                         relief=tk.RIDGE, bd=1, highlightthickness=0, *args, **kwargs)
+        self.char = char
+        self.command = command
+        self.disabled = False
+        self.bind("<Button-1>", self.on_click)
+        self.bind("<Enter>", self.on_enter)
+        self.bind("<Leave>", self.on_leave)
+
+    def on_click(self, event):
+        if not self.disabled:
+            self.command(self.char)
+
+    def on_enter(self, event):
+        if not self.disabled:
+            self.config(bg="#334155")
+            
+    def on_leave(self, event):
+        if not self.disabled:
+            self.config(bg="#1e293b")
+
+    def disable_with_color(self, bg_color, fg_color):
+        self.disabled = True
+        self.config(bg=bg_color, fg=fg_color)
+
+    def reset(self):
+        self.disabled = False
+        self.config(bg="#1e293b", fg="#f8fafc")
+
 class HangmanGUI:
     def __init__(self, root):
         self.root          = root
@@ -45,6 +77,7 @@ class HangmanGUI:
         self.is_adversarial = True
         self.god_mode      = False
         self.max_errors    = 10
+        self.alpha         = 1.5
         self.reveal_order  = []
 
         self.canvas        = None
@@ -111,8 +144,27 @@ class HangmanGUI:
             relief=tk.FLAT, command=self.on_guesses_change
         )
         self.guesses_spin.pack(side=tk.LEFT)
-        # Tooltip hint shown via title attribute (native OS tooltip)
         self.guesses_spin.config(cursor="question_arrow")
+
+        # Alpha spinbox
+        alf = tk.Frame(right, bg="#0f172a"); alf.pack(anchor=tk.E, pady=2)
+        self.alpha_label = tk.Label(alf, text="Adversarialness:", fg="#94a3b8", bg="#0f172a",
+                 font=("Outfit", 10))
+        self.alpha_label.pack(side=tk.LEFT, padx=5)
+        self.alpha_var  = tk.DoubleVar(value=1.5)
+        self.alpha_spin = tk.Spinbox(
+            alf, from_=1.0, to=3.0, increment=0.1, format="%.1f", textvariable=self.alpha_var,
+            width=4, font=("Outfit", 11, "bold"),
+            bg="#1e293b", fg="white", buttonbackground="#334155",
+            relief=tk.FLAT, command=self.on_alpha_change
+        )
+        self.alpha_spin.pack(side=tk.LEFT)
+        self.alpha_spin.config(cursor="question_arrow")
+
+        # Alpha description
+        al_desc_f = tk.Frame(right, bg="#0f172a"); al_desc_f.pack(anchor=tk.E, pady=(0, 5))
+        tk.Label(al_desc_f, text="Higher adversarialness makes the game aggressively favor harder word groups.",
+                 fg="#94a3b8", bg="#0f172a", font=("Outfit", 8), justify=tk.RIGHT, wraplength=260).pack(side=tk.RIGHT, padx=5)
 
         # Hangman canvas
         self.canvas = tk.Canvas(self.root, width=230, height=280,
@@ -180,6 +232,17 @@ class HangmanGUI:
         if self.game:
             self.game.max_errors = val
 
+    def on_alpha_change(self):
+        try:
+            val = float(self.alpha_var.get())
+            val = max(1.0, min(3.0, val))
+        except ValueError:
+            val = 1.0
+        self.alpha_var.set(val)
+        self.alpha = val
+        if self.game:
+            self.game.alpha = val
+
     # ── Toggle callbacks ──────────────────────────────────────────────────────
     def set_god_mode(self, is_on):
         self.god_mode = is_on
@@ -229,6 +292,7 @@ class HangmanGUI:
             self.game.is_adversarial = self.is_adversarial
             self.game.god_mode       = self.god_mode
             self.game.max_errors     = self.max_errors
+            self.game.alpha          = self.alpha
             self.game.refresh()
             self.reset_ui_for_new_game()
 
@@ -237,11 +301,13 @@ class HangmanGUI:
             self.game = HangmanGame(
                 is_adversarial=self.is_adversarial,
                 god_mode=self.god_mode,
-                max_errors=self.max_errors)
+                max_errors=self.max_errors,
+                alpha=self.alpha)
         else:
             self.game.is_adversarial = self.is_adversarial
             self.game.god_mode       = self.god_mode
             self.game.max_errors     = self.max_errors
+            self.game.alpha          = self.alpha
             self.game.start_game()
         
         self.reveal_order = self.calculate_reveal_order(self.max_errors)
@@ -288,7 +354,7 @@ class HangmanGUI:
         self.update_ui()
         self.status_label.config(text="Ready to play!", fg="#f8fafc")
         for btn in self.keys.values():
-            btn.config(state=tk.NORMAL, bg="#1e293b", fg="white")
+            btn.reset()
         self.next_btn.pack_forget()
         if not self.refresh_btn.winfo_ismapped():
             self.refresh_btn.pack(side=tk.LEFT, padx=10)
@@ -389,11 +455,8 @@ class HangmanGUI:
             w.destroy()
         self.keys = {}
         for i, ch in enumerate('abcdefghijklmnopqrstuvwxyz'):
-            btn = tk.Button(
-                self.keyboard_frame, text=ch.upper(), width=4, height=2,
-                font=("Outfit", 11, "bold"), bg="#1e293b", fg="white",
-                relief=tk.FLAT,
-                command=lambda c=ch: self.handle_guess(c))
+            btn = KeyboardKey(
+                self.keyboard_frame, ch, command=self.handle_guess)
             btn.grid(row=i//7, column=i%7, padx=2, pady=2)
             self.keys[ch] = btn
 
@@ -409,8 +472,8 @@ class HangmanGUI:
         if success:
             btn = self.keys.get(ch)
             if btn:
-                btn.config(state=tk.DISABLED)
-                btn.config(bg="#10b981" if ch in self.game.current_pattern else "#ef4444")
+                bg_color = "#10b981" if ch in self.game.current_pattern else "#ef4444"
+                btn.disable_with_color(bg_color, fg_color="white")
 
             # Lock spinbox after first guess
             if len(self.game.guessed_letters) == 1:
@@ -432,7 +495,7 @@ class HangmanGUI:
 
     def end_game(self):
         for btn in self.keys.values():
-            btn.config(state=tk.DISABLED)
+            btn.disabled = True
         self.update_ui()
         if self.game.won:
             self.status_label.config(text="You Win! 🎉", fg="#10b981")

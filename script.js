@@ -7,6 +7,7 @@ const TOTAL_PARTS = 26;
 let maxErrors = 10;
 let isAdversarial = true;
 let godMode = false;
+let gameAlpha = 1.5;
 let gamesWon = 0;
 let gamesPlayed = 0;
 let regularWord = "";
@@ -17,8 +18,10 @@ let revealOrder = []; // Ordered indices of body parts to show
 const modeToggle   = document.getElementById('modeToggle');
 const godToggle    = document.getElementById('godToggle');
 const guessesInput = document.getElementById('guessesInput');
+const alphaInput   = document.getElementById('alphaInput');
 const recordLabel  = document.getElementById('recordLabel');
 const guessesLabel = document.getElementById('guessesLabel');
+const alphaLabel   = document.getElementById('alphaLabel');
 const btnRefresh   = document.getElementById('btnRefreshBot');
 const btnRestart   = document.getElementById('btnRestart');
 const keyboardEl   = document.getElementById('keyboard');
@@ -203,12 +206,16 @@ function initGame() {
     isAdversarial = modeToggle.checked;
     godMode       = godToggle.checked;
     maxErrors     = Math.max(6, Math.min(TOTAL_PARTS, parseInt(guessesInput.value) || 10));
+    gameAlpha     = Math.max(1.0, Math.min(3.0, parseFloat(alphaInput.value) || 1.5));
     revealOrder   = calculateRevealOrder(maxErrors);
 
-    // Reset guess label
+    // Reset guess labels
     if (guessesLabel) guessesLabel.textContent = 'Guess Limit:';
+    if (alphaLabel) alphaLabel.textContent = 'Adversarialness:';
     guessesInput.disabled      = false;
     guessesInput.style.opacity = '1';
+    alphaInput.disabled        = false;
+    alphaInput.style.opacity   = '1';
 
     btnRestart.style.display = 'none';
     btnRefresh.style.display = 'inline-block';
@@ -234,11 +241,14 @@ function handleGuess(letter) {
     if (gameOver || guessedLetters.has(letter)) return;
     guessedLetters.add(letter);
 
-    // Lock guess input after first letter — update label text
+    // Lock guess inputs after first letter — update label text
     if (guessedLetters.size === 1) {
         guessesInput.disabled      = true;
         guessesInput.style.opacity = '0.5';
+        alphaInput.disabled        = true;
+        alphaInput.style.opacity   = '0.5';
         if (guessesLabel) guessesLabel.textContent = 'Guess Limit — locked mid-game (enable Always Win for more room):';
+        if (alphaLabel) alphaLabel.textContent = 'Adversarialness (locked):';
     }
 
     let hit = false;
@@ -255,7 +265,7 @@ function handleGuess(letter) {
             (groups[pat] ??= []).push(word);
         }
 
-        const alpha   = 1.5;
+        const alpha   = gameAlpha;
         const pats    = Object.keys(groups);
         const weights = pats.map(p => groups[p].length ** alpha);
         const total   = weights.reduce((a, v) => a + v, 0);
