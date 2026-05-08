@@ -16,14 +16,23 @@
             <div class="header-left">
                 <h1>Hangman</h1>
                 <div class="streak-container"><span id="recordLabel">Record: 0/0</span></div>
-                <div id="kofi-container">
-                    <script type='text/javascript' src='https://storage.ko-fi.com/cdn/widget/Widget_2.js'></script>
-                    <script type='text/javascript'>
-                        kofiwidget2.init('Support me on Ko-fi', '#3b82f6', 'I2I81CDN0L');
-                        kofiwidget2.draw();
-                    </script>
-                </div>
-            </div>
+                <div class="credits-section">
+                    <div class="credits-info">
+                        <span>Developed by <strong>Amit Joshi</strong></span>
+                        <a href="https://github.com/amitjoshi2724" target="_blank">GitHub: @amitjoshi2724</a>
+                    </div>
+                    <div id="kofi-widget-container">
+                        <script src="https://storage.ko-fi.com/cdn/widget/Widget_2.js"></script>
+                        <script>
+                            try {
+                                kofiwidget2.init('Support me on Ko-fi', '#72a4f2', 'I2I81CDN0L');
+                                kofiwidget2.draw();
+                            } catch (e) {
+                                console.error('Ko-fi widget error:', e);
+                            }
+                        </script>
+                    </div>
+                </div>            </div>
             <div class="toggles-container">
                 <div class="toggle-container">
                     <span class="toggle-label always-win-label">Always Win</span>
@@ -152,6 +161,7 @@
                     </div>
                 </div>
             </div>
+
         </main>
     </div>
     <script src="script.js"></script>

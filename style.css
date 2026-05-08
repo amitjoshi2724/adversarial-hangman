@@ -498,3 +498,45 @@ main {
     min-height: 40px;
     margin-top: 0.5rem;
 }
+
+.credits-section {
+    display: flex;
+    align-items: center;
+    gap: 1.25rem;
+    flex-wrap: wrap;
+    margin-top: 0.5rem;
+}
+
+.credits-info {
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+}
+
+.credits-info span {
+    font-size: 0.85rem;
+    color: var(--text-secondary);
+}
+
+.credits-info strong {
+    color: var(--text-primary);
+}
+
+.credits-info a {
+    color: var(--accent-color);
+    text-decoration: none;
+    font-size: 0.8rem;
+    transition: all 0.2s;
+    font-weight: 600;
+}
+
+.credits-info a:hover {
+    color: var(--accent-hover);
+    text-decoration: underline;
+}
+
+#kofi-widget-container {
+    display: flex;
+    align-items: center;
+}
+

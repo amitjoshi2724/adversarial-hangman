@@ -184,13 +184,25 @@ function calculateRevealOrder(totalGuesses) {
 // ── Dictionary ────────────────────────────────────────────────────────────────
 async function loadDictionary() {
     try {
-        const r = await fetch('dict.txt');
-        if (!r.ok) throw new Error();
+        let r = await fetch('dict.txt');
+        if (!r.ok && r.status !== 0) throw new Error("Local fetch failed");
         const text = await r.text();
         dictionary = text.split(/\r?\n/).map(w => w.trim().toLowerCase()).filter(w => /^[a-z]+$/.test(w));
+        if (dictionary.length === 0) throw new Error("Dictionary empty (likely CORS block)");
     } catch {
-        dictionary = ['apple','banana','orange','grape','peach','lemon','melon',
-                      'strawberry','blueberry','blackberry','kiwi','pineapple','watermelon'];
+        console.warn("Local dict.txt failed. Attempting to load remote dictionary fallback...");
+        try {
+            // Fallback for file:// users
+            let r = await fetch('https://raw.githubusercontent.com/first20hours/google-10000-english/master/google-10000-english-no-swears.txt');
+            if (!r.ok) throw new Error();
+            const text = await r.text();
+            dictionary = text.split(/\r?\n/).map(w => w.trim().toLowerCase()).filter(w => /^[a-z]+$/.test(w));
+            alert("Note: Loaded remote backup dictionary because you opened the file directly in the browser. Some rare words might be missing.");
+        } catch {
+            alert("Warning: Both local and remote dictionaries failed to load. Using tiny fallback dictionary.");
+            dictionary = ['apple','banana','orange','grape','peach','lemon','melon',
+                          'strawberry','blueberry','blackberry','kiwi','pineapple','watermelon'];
+        }
     }
     initGame();
 }

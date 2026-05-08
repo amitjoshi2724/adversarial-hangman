@@ -28,8 +28,12 @@ class HangmanGame:
 
     def _load_dictionary(self, dict_path):
         words = []
-        if os.path.exists(dict_path):
-            with open(dict_path, 'r', encoding='utf-8') as f:
+        # Support running from anywhere by resolving path relative to this script
+        base_dir = os.path.dirname(os.path.abspath(__file__))
+        full_path = os.path.join(base_dir, dict_path)
+        
+        if os.path.exists(full_path):
+            with open(full_path, 'r', encoding='utf-8') as f:
                 for line in f:
                     w = line.strip().lower()
                     if w.isalpha():
